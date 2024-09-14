@@ -50,52 +50,44 @@ classdef lab_01 < matlab.apps.AppBase
             x = 1:number_of_points;
 
             % Create Y array
-            y_accumulated = 1:number_of_points;
-            for i = x
-                y_accumulated(i) = 0;
-            end
+            y_accumulated = zeros(1, number_of_points);
+
+            % Define frequency
+            frequency = 2 * pi * periods_number / 1000;
 
             for iteration = 1:number_of_accumulations
                 % Create Y array
-                y = 1:number_of_points;
-                for i = x
-                    % Fill Y array by selected signal type
-                    if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
-                        y(i) = sin(2 * pi * i * periods_number / 1000);
-                    elseif (app.SignalTypeDropDown.Value == "Sawtooth")
-                        y(i) = sawtooth(2 * pi * i * periods_number / 1000);
-                    elseif (app.SignalTypeDropDown.Value == "Triangular")
-                        y(i) = sawtooth(2 * pi * i * periods_number / 1000, 0.5);
-                    elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
-                        y(i) = square(2 * pi * i * periods_number / 1000);
-                    end
-                end
-    
-                % Amplify signal
-                for i = x
-                    y(i) = y(i) * signal_aplitude;
-                end
-    
+                y = zeros(1, number_of_points);
+
                 % Generate noise
                 if (app.NoiseTypeDropDown.Value == "Normally Distributed")
                     noise = randn(number_of_points);
                 elseif (app.NoiseTypeDropDown.Value == "White Gaussian Noise")
                     noise = wgn(number_of_points, 1, 0);
                 end
-                for i = x
-                    y(i) = y(i) + (noise_sko * noise(i));
+                noise = noise * noise_sko;
+
+                for i = 1:number_of_points
+                    % Fill Y array by selected signal type
+                    if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
+                        y(i) = sin(frequency * i);
+                    elseif (app.SignalTypeDropDown.Value == "Sawtooth")
+                        y(i) = sawtooth(frequency * i);
+                    elseif (app.SignalTypeDropDown.Value == "Triangular")
+                        y(i) = sawtooth(frequency * i, 0.5);
+                    elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
+                        y(i) = square(frequency * i);
+                    end
+                    y(i) = y(i) * signal_aplitude;
+                    y(i) = y(i) + noise(i);
                 end
 
                 % Accumulate results
-                for i = x
-                    y_accumulated(i) = y_accumulated(i) + y(i);
-                end
+                y_accumulated = y_accumulated + y;
             end
 
-            % Accumulate results
-            for i = x
-                y_accumulated(i) = y_accumulated(i) / number_of_accumulations;
-            end
+            % Normalize the accumulated results
+            y_accumulated = y_accumulated / number_of_accumulations;
 
             % Draw graph in axes object
             plot(app.UIAxes, x, y_accumulated);
