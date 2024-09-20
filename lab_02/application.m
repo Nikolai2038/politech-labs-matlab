@@ -66,7 +66,7 @@ classdef application < matlab.apps.AppBase
                 elseif (app.NoiseTypeDropDown.Value == "White Gaussian Noise")
                     noise = wgn(number_of_points, 1, 0);
                 else
-                    noise = 0;
+                    noise = zeros(1, number_of_points);
                 end
                 noise = noise * noise_sko;
 
@@ -80,6 +80,8 @@ classdef application < matlab.apps.AppBase
                         y(i) = sawtooth(frequency * i, 0.5);
                     elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
                         y(i) = square(frequency * i);
+                    elseif (app.SignalTypeDropDown.Value == "f(x) = abs(sin(x))")
+                        y(i) = abs(sin(frequency * i));
                     end
                     y(i) = y(i) * signal_aplitude;
                     y(i) = y(i) + noise(i);
@@ -215,7 +217,7 @@ classdef application < matlab.apps.AppBase
 
             % Create SignalTypeDropDown
             app.SignalTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
-            app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses'};
+            app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))'};
             app.SignalTypeDropDown.Position = [28 398 155 22];
             app.SignalTypeDropDown.Value = 'Harmonic (Sinusoidal)';
 
