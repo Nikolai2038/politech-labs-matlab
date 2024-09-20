@@ -1,5 +1,5 @@
 
-classdef lab_01 < matlab.apps.AppBase
+classdef application < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -29,6 +29,7 @@ classdef lab_01 < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
+            % Create ".m" file with ".mlapp" MATLAB code (for track changes in GIT)
             writelines(evalc('type(mfilename(''fullpath'') + ".mlapp")'), mfilename('fullpath') + ".m");
         end
 
@@ -64,6 +65,8 @@ classdef lab_01 < matlab.apps.AppBase
                     noise = randn(number_of_points);
                 elseif (app.NoiseTypeDropDown.Value == "White Gaussian Noise")
                     noise = wgn(number_of_points, 1, 0);
+                else
+                    noise = 0;
                 end
                 noise = noise * noise_sko;
 
@@ -91,6 +94,17 @@ classdef lab_01 < matlab.apps.AppBase
 
             % Draw graph in axes object
             plot(app.UIAxes, x, y_accumulated);
+        end
+
+        % Value changed function: NoiseTypeDropDown
+        function NoiseTypeDropDownValueChanged(app, event)
+            if (app.NoiseTypeDropDown.Value == "None")
+                app.NoiseSKOLabel.Enable = "off";
+                app.NoiseSKOEditField.Enable = "off";
+            else
+                app.NoiseSKOLabel.Enable = "on";
+                app.NoiseSKOEditField.Enable = "on";
+            end
         end
     end
 
@@ -142,6 +156,7 @@ classdef lab_01 < matlab.apps.AppBase
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseSKOLabel.HorizontalAlignment = 'right';
+            app.NoiseSKOLabel.Enable = 'off';
             app.NoiseSKOLabel.Position = [68 197 68 22];
             app.NoiseSKOLabel.Text = 'Noise SKO:';
 
@@ -149,6 +164,7 @@ classdef lab_01 < matlab.apps.AppBase
             app.NoiseSKOEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
             app.NoiseSKOEditField.ValueDisplayFormat = '%9.1f';
             app.NoiseSKOEditField.HorizontalAlignment = 'center';
+            app.NoiseSKOEditField.Enable = 'off';
             app.NoiseSKOEditField.Position = [28 176 155 22];
             app.NoiseSKOEditField.Value = 0.1;
 
@@ -173,9 +189,10 @@ classdef lab_01 < matlab.apps.AppBase
 
             % Create NoiseTypeDropDown
             app.NoiseTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
-            app.NoiseTypeDropDown.Items = {'Normally Distributed', 'White Gaussian Noise'};
+            app.NoiseTypeDropDown.Items = {'None', 'Normally Distributed', 'White Gaussian Noise'};
+            app.NoiseTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @NoiseTypeDropDownValueChanged, true);
             app.NoiseTypeDropDown.Position = [28 234 155 22];
-            app.NoiseTypeDropDown.Value = 'Normally Distributed';
+            app.NoiseTypeDropDown.Value = 'None';
 
             % Create NumberOfPointsLabel
             app.NumberOfPointsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -231,7 +248,7 @@ classdef lab_01 < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = lab_01
+        function app = application
 
             % Create UIFigure and components
             createComponents(app)
