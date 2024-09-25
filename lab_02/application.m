@@ -4,12 +4,10 @@ classdef application < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         ModelSignalGeneratorUIFigure    matlab.ui.Figure
-        ClearTableButton_2              matlab.ui.control.Button
+        FouriercomplexSKOLabel          matlab.ui.control.Label
+        FourierSKOLabel                 matlab.ui.control.Label
         ClearTableButton                matlab.ui.control.Button
-        UITable                         matlab.ui.control.Table
-        UITable_2                       matlab.ui.control.Table
-        FouriercomplexLabel_2           matlab.ui.control.Label
-        FourierLabel_2                  matlab.ui.control.Label
+        UITableSKO                      matlab.ui.control.Table
         FouriercomplexLabel             matlab.ui.control.Label
         FourierLabel                    matlab.ui.control.Label
         SignalLabel                     matlab.ui.control.Label
@@ -32,46 +30,46 @@ classdef application < matlab.apps.AppBase
         NoiseSKOLabel                   matlab.ui.control.Label
         PeriodsNumberkpEditField        matlab.ui.control.NumericEditField
         PeriodsNumberLabel              matlab.ui.control.Label
-        QuitButton                      matlab.ui.control.Button
         GenerateButton                  matlab.ui.control.Button
-        UIAxes_2                        matlab.ui.control.UIAxes
-        UIAxes                          matlab.ui.control.UIAxes
+        UIAxesSKO                       matlab.ui.control.UIAxes
+        UIAxesSignals                   matlab.ui.control.UIAxes
     end
 
     
     properties (Access = private)
-        TableData
+        FourierData
     end
     
     methods (Access = private)
         function UpdateTableChart(app)
-            if (isempty(app.TableData))
+            if (isempty(app.FourierData))
                 % Empty the data
-                app.UITable.Data = [];
+                app.UITableSKO.Data = [];
 
                 % Clear chart
-                cla(app.UIAxes_2);
-            else
+                cla(app.UIAxesSKO);
+            % For interpolation, we need at least 2 different points
+            elseif (size(app.FourierData, 1) >= 2)
                 % Load data from variable
-                app.UITable.Data = array2table(app.TableData,'VariableNames',{'K','SKO'});
-                x = app.UITable.Data.K;
-                y = app.UITable.Data.SKO;
-    
-                % ----------------------------------------
-                % Draw chart
-                % ----------------------------------------
-                % For interpolation, we need at least 2 different points
-                if (size(app.TableData, 1) >= 2)
-                    % Create 100 more points for interpolation
-                    xq = linspace(min(x), max(x), 100);
-                    
-                    % Apply interpolation
-                    yq = interp1(x, y, xq, 'pchip');
-                    
-                    % Draw chart with soft line and points
-                    plot(app.UIAxes_2, xq, yq, 'b-', x, y, 'bo');
-                end
-                % ----------------------------------------
+                app.UITableSKO.Data = array2table(app.FourierData,'VariableNames',{'K','SKO','SKO_Complex'});
+                x = app.UITableSKO.Data.K;
+                y_simple = app.UITableSKO.Data.SKO;
+                y_complex = app.UITableSKO.Data.SKO_Complex;
+
+                % Create 100 more points for interpolation
+                x_interpolated = linspace(min(x), max(x), 100);
+                
+                % Apply interpolation
+                y_simple_interpolated = interp1(x, y_simple, x_interpolated, 'pchip');
+                % Draw chart 1 with soft line and points
+                plot(app.UIAxesSKO, x_interpolated, y_simple_interpolated, 'b-', x, y_simple, 'bo');
+                
+                % Apply interpolation
+                y_complex_interpolated = interp1(x, y_complex, x_interpolated, 'pchip');
+                % Draw chart 2 with soft line and points
+                hold(app.UIAxesSKO, 'on');
+                plot(app.UIAxesSKO, x_interpolated, y_complex_interpolated, 'm-', x, y_complex, 'mo');
+                hold(app.UIAxesSKO, 'off');
             end
         end
         
@@ -90,7 +88,7 @@ classdef application < matlab.apps.AppBase
         end
         
         function ClearTable(app)
-            app.TableData = [];
+            app.FourierData = [];
             app.UpdateTableChart();
         end
     end
@@ -108,7 +106,7 @@ classdef application < matlab.apps.AppBase
             app.UpdateMaxLimit();
         end
 
-        % Button pushed function: QuitButton
+        % Callback function: not associated with a component
         function QuitButtonPushed(app, event)
             % Close the app
             app.delete();
@@ -183,7 +181,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Draw graph in axes object
             % ----------------------------------------
-            plot(app.UIAxes, x, y_accumulated, 'r');
+            plot(app.UIAxesSignals, x, y_accumulated, 'r');
             % ----------------------------------------
 
             % ----------------------------------------
@@ -205,7 +203,6 @@ classdef application < matlab.apps.AppBase
                 Sb(j) = Sb(j) * 2 / number_of_points;
             end
 
-            y_fourier = zeros(1,number_of_points);
             for i = 1:number_of_points
                 for j = 1:K
                     y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
@@ -217,9 +214,9 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Draw new chart in the same figure
             % ----------------------------------------
-            hold(app.UIAxes, 'on');
-            plot(app.UIAxes, i, y_fourier, 'b');
-            hold(app.UIAxes, 'off');
+            hold(app.UIAxesSignals, 'on');
+            plot(app.UIAxesSignals, i, y_fourier, 'b');
+            hold(app.UIAxesSignals, 'off');
             % ----------------------------------------
             
             % ----------------------------------------
@@ -240,14 +237,14 @@ classdef application < matlab.apps.AppBase
             % Обновляем правый график зависимости погрешности от K
             % ----------------------------------------
             % Add new row to the table
-            app.TableData = [app.TableData; K SKO_in_percents];
+            app.FourierData = [app.FourierData; K SKO_in_percents SKO_in_percents + 1];
 
             % Sort values to make sure they are ascending
-            app.TableData = sortrows(app.TableData);
+            app.FourierData = sortrows(app.FourierData);
 
             % Filter rows with same first column (K)
-            [~,ia,~] = unique(app.TableData(:,1), 'rows');
-            app.TableData = app.TableData(ia,:);
+            [~,ia,~] = unique(app.FourierData(:,1), 'rows');
+            app.FourierData = app.FourierData(ia,:);
 
             % Redraw table chart
             app.UpdateTableChart();
@@ -297,6 +294,11 @@ classdef application < matlab.apps.AppBase
         function NumberOfAccumulationsEditFieldValueChanged(app, event)
             ClearTable(app);
         end
+
+        % Callback function: not associated with a component
+        function ClearTableButton_2Pushed(app, event)
+            ClearTable(app);
+        end
     end
 
     % Component initialization
@@ -307,28 +309,28 @@ classdef application < matlab.apps.AppBase
 
             % Create ModelSignalGeneratorUIFigure and hide until all components are created
             app.ModelSignalGeneratorUIFigure = uifigure('Visible', 'off');
-            app.ModelSignalGeneratorUIFigure.Position = [100 100 1241 611];
+            app.ModelSignalGeneratorUIFigure.Position = [100 100 1057 611];
             app.ModelSignalGeneratorUIFigure.Name = 'Model Signal Generator';
 
-            % Create UIAxes
-            app.UIAxes = uiaxes(app.ModelSignalGeneratorUIFigure);
-            xlabel(app.UIAxes, 'N')
-            ylabel(app.UIAxes, 'S')
-            zlabel(app.UIAxes, 'Z')
-            app.UIAxes.Box = 'on';
-            app.UIAxes.XGrid = 'on';
-            app.UIAxes.YGrid = 'on';
-            app.UIAxes.Position = [201 24 410 501];
+            % Create UIAxesSignals
+            app.UIAxesSignals = uiaxes(app.ModelSignalGeneratorUIFigure);
+            xlabel(app.UIAxesSignals, 'N')
+            ylabel(app.UIAxesSignals, 'S')
+            zlabel(app.UIAxesSignals, 'Z')
+            app.UIAxesSignals.Box = 'on';
+            app.UIAxesSignals.XGrid = 'on';
+            app.UIAxesSignals.YGrid = 'on';
+            app.UIAxesSignals.Position = [201 24 410 501];
 
-            % Create UIAxes_2
-            app.UIAxes_2 = uiaxes(app.ModelSignalGeneratorUIFigure);
-            xlabel(app.UIAxes_2, 'K')
-            ylabel(app.UIAxes_2, 'SKO')
-            zlabel(app.UIAxes_2, 'Z')
-            app.UIAxes_2.Box = 'on';
-            app.UIAxes_2.XGrid = 'on';
-            app.UIAxes_2.YGrid = 'on';
-            app.UIAxes_2.Position = [806 24 425 501];
+            % Create UIAxesSKO
+            app.UIAxesSKO = uiaxes(app.ModelSignalGeneratorUIFigure);
+            xlabel(app.UIAxesSKO, 'K')
+            ylabel(app.UIAxesSKO, 'SKO')
+            zlabel(app.UIAxesSKO, 'Z')
+            app.UIAxesSKO.Box = 'on';
+            app.UIAxesSKO.XGrid = 'on';
+            app.UIAxesSKO.YGrid = 'on';
+            app.UIAxesSKO.Position = [621 24 425 248];
 
             % Create GenerateButton
             app.GenerateButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
@@ -336,13 +338,6 @@ classdef application < matlab.apps.AppBase
             app.GenerateButton.BackgroundColor = [0.9137 1 0.8];
             app.GenerateButton.Position = [28 24 156 23];
             app.GenerateButton.Text = 'Generate';
-
-            % Create QuitButton
-            app.QuitButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
-            app.QuitButton.ButtonPushedFcn = createCallbackFcn(app, @QuitButtonPushed, true);
-            app.QuitButton.BackgroundColor = [1 0.8588 0.8588];
-            app.QuitButton.Position = [1060 570 156 23];
-            app.QuitButton.Text = 'Quit';
 
             % Create PeriodsNumberLabel
             app.PeriodsNumberLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -425,7 +420,7 @@ classdef application < matlab.apps.AppBase
             app.ModelSignalGeneratorLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ModelSignalGeneratorLabel.HorizontalAlignment = 'center';
             app.ModelSignalGeneratorLabel.FontSize = 24;
-            app.ModelSignalGeneratorLabel.Position = [201 570 410 31];
+            app.ModelSignalGeneratorLabel.Position = [2 569 1056 31];
             app.ModelSignalGeneratorLabel.Text = 'Model Signal Generator';
 
             % Create SignalTypeDropDown
@@ -499,46 +494,32 @@ classdef application < matlab.apps.AppBase
             app.FouriercomplexLabel.Position = [469 533 99 22];
             app.FouriercomplexLabel.Text = 'Fourier (complex)';
 
-            % Create FourierLabel_2
-            app.FourierLabel_2 = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.FourierLabel_2.BackgroundColor = [1 1 1];
-            app.FourierLabel_2.HorizontalAlignment = 'center';
-            app.FourierLabel_2.FontColor = [0 0 1];
-            app.FourierLabel_2.Position = [634 513 156 22];
-            app.FourierLabel_2.Text = 'Fourier';
-
-            % Create FouriercomplexLabel_2
-            app.FouriercomplexLabel_2 = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.FouriercomplexLabel_2.BackgroundColor = [1 1 1];
-            app.FouriercomplexLabel_2.HorizontalAlignment = 'center';
-            app.FouriercomplexLabel_2.FontColor = [1 0 1];
-            app.FouriercomplexLabel_2.Position = [634 247 156 22];
-            app.FouriercomplexLabel_2.Text = 'Fourier (complex)';
-
-            % Create UITable_2
-            app.UITable_2 = uitable(app.ModelSignalGeneratorUIFigure);
-            app.UITable_2.ColumnName = {'K'; 'SKO'};
-            app.UITable_2.RowName = {};
-            app.UITable_2.Position = [634 46 156 202];
-
-            % Create UITable
-            app.UITable = uitable(app.ModelSignalGeneratorUIFigure);
-            app.UITable.ColumnName = {'K'; 'SKO'};
-            app.UITable.RowName = {};
-            app.UITable.Position = [634 312 156 202];
+            % Create UITableSKO
+            app.UITableSKO = uitable(app.ModelSignalGeneratorUIFigure);
+            app.UITableSKO.ColumnName = {'K'; 'SKO'; 'SKO_Complex'};
+            app.UITableSKO.RowName = {};
+            app.UITableSKO.Position = [661 329 376 189];
 
             % Create ClearTableButton
             app.ClearTableButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
             app.ClearTableButton.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButtonPushed, true);
             app.ClearTableButton.BackgroundColor = [1 0.9059 0.6784];
-            app.ClearTableButton.Position = [634 292 156 23];
-            app.ClearTableButton.Text = 'Clear table';
+            app.ClearTableButton.Position = [661 309 376 23];
+            app.ClearTableButton.Text = 'Clear tables';
 
-            % Create ClearTableButton_2
-            app.ClearTableButton_2 = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
-            app.ClearTableButton_2.BackgroundColor = [1 0.9059 0.6784];
-            app.ClearTableButton_2.Position = [634 26 156 23];
-            app.ClearTableButton_2.Text = 'Clear table';
+            % Create FourierSKOLabel
+            app.FourierSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.FourierSKOLabel.BackgroundColor = [1 1 1];
+            app.FourierSKOLabel.FontColor = [0 0 1];
+            app.FourierSKOLabel.Position = [756 275 72 22];
+            app.FourierSKOLabel.Text = 'Fourier SKO';
+
+            % Create FouriercomplexSKOLabel
+            app.FouriercomplexSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.FouriercomplexSKOLabel.BackgroundColor = [1 1 1];
+            app.FouriercomplexSKOLabel.FontColor = [1 0 1];
+            app.FouriercomplexSKOLabel.Position = [844 275 128 22];
+            app.FouriercomplexSKOLabel.Text = 'Fourier (complex) SKO';
 
             % Show the figure after all components are created
             app.ModelSignalGeneratorUIFigure.Visible = 'on';
