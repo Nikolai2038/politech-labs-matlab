@@ -49,27 +49,30 @@ classdef application < matlab.apps.AppBase
                 % Clear chart
                 cla(app.UIAxesSKO);
             % For interpolation, we need at least 2 different points
-            elseif (size(app.FourierData, 1) >= 2)
+            else
                 % Load data from variable
                 app.UITableSKO.Data = array2table(app.FourierData,'VariableNames',{'K','SKO','SKO_Complex'});
-                x = app.UITableSKO.Data.K;
-                y_simple = app.UITableSKO.Data.SKO;
-                y_complex = app.UITableSKO.Data.SKO_Complex;
-
-                % Create 100 more points for interpolation
-                x_interpolated = linspace(min(x), max(x), 100);
                 
-                % Apply interpolation
-                y_simple_interpolated = interp1(x, y_simple, x_interpolated, 'pchip');
-                % Draw chart 1 with soft line and points
-                plot(app.UIAxesSKO, x_interpolated, y_simple_interpolated, 'b-', x, y_simple, 'bo');
-                
-                % Apply interpolation
-                y_complex_interpolated = interp1(x, y_complex, x_interpolated, 'pchip');
-                % Draw chart 2 with soft line and points
-                hold(app.UIAxesSKO, 'on');
-                plot(app.UIAxesSKO, x_interpolated, y_complex_interpolated, 'm-', x, y_complex, 'mo');
-                hold(app.UIAxesSKO, 'off');
+                if (size(app.FourierData, 1) >= 2)
+                    x = app.UITableSKO.Data.K;
+                    y_simple = app.UITableSKO.Data.SKO;
+                    y_complex = app.UITableSKO.Data.SKO_Complex;
+    
+                    % Create 100 more points for interpolation
+                    x_interpolated = linspace(min(x), max(x), 100);
+                    
+                    % Apply interpolation
+                    y_simple_interpolated = interp1(x, y_simple, x_interpolated, 'pchip');
+                    % Draw chart 1 with soft line and points
+                    plot(app.UIAxesSKO, x_interpolated, y_simple_interpolated, 'b-', x, y_simple, 'bo');
+                    
+                    % Apply interpolation
+                    y_complex_interpolated = interp1(x, y_complex, x_interpolated, 'pchip');
+                    % Draw chart 2 with soft line and points
+                    hold(app.UIAxesSKO, 'on');
+                    plot(app.UIAxesSKO, x_interpolated, y_complex_interpolated, 'm-', x, y_complex, 'mo');
+                    hold(app.UIAxesSKO, 'off');
+                end
             end
         end
         
@@ -185,7 +188,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
 
             % ----------------------------------------
-            % Высчитываем точки ряда Фурье
+            % Высчитываем точки действительного ряда Фурье
             % ----------------------------------------
             Sa0 = sum(y_accumulated) / number_of_points;
 
@@ -203,6 +206,7 @@ classdef application < matlab.apps.AppBase
                 Sb(j) = Sb(j) * 2 / number_of_points;
             end
 
+            y_fourier = zeros(1,number_of_points);
             for i = 1:number_of_points
                 for j = 1:K
                     y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
@@ -215,7 +219,7 @@ classdef application < matlab.apps.AppBase
             % Draw new chart in the same figure
             % ----------------------------------------
             hold(app.UIAxesSignals, 'on');
-            plot(app.UIAxesSignals, i, y_fourier, 'b');
+            plot(app.UIAxesSignals, x, y_fourier, 'b');
             hold(app.UIAxesSignals, 'off');
             % ----------------------------------------
             
@@ -233,11 +237,111 @@ classdef application < matlab.apps.AppBase
             SKO_in_percents = std(y_fourier_deviation_in_percents);
             % ----------------------------------------
             
+
+
+
+
+
+
+
+
+
+
+            
+            
+            % ----------------------------------------
+            % Высчитываем точки комплексного ряда Фурье
+            % ----------------------------------------
+            C0 = sum(y_accumulated) * 2 / number_of_points;
+            C = zeros(1,K);
+            for i = 1:number_of_points
+                for k = 1:K
+                    C(k) = C(k) + y_accumulated(i) * exp(-1j * 2 * pi * k * (i - 1) / number_of_points);
+                end
+            end
+            for k = 1:K
+                C(k) = C(k) * (2 / number_of_points);
+            end
+            %%%%Вычисление и отображение спектра амплитуд (начало)
+            %%%for k = 1:K
+            %%%    Cab(k) = abs(C(k));%коэффициенты Cab(k)- комплексные числа вида a+jb,
+            %%%     %функция abs вычисляет sqrt(a^2+b^2 )
+            %%%end
+            %%%k=1:K;
+            %%%figure
+            %%%plot(k,Cab);
+            %%%stem(Cab(1:K)); %вывод графика  дискретной последовательности данных
+            %%%axis([1 8 -0.2 1.2]);%задание осей: [xmin xmax ymin ymax]
+            %%%title('Амплитуды частотных составляющих спектра');
+            %%%xlabel('Количество периодов')
+            %%%axis tight;
+
+            %Вычисление и отображение спектра амплитуд (конец)
+            %%%%%%%%%%%y_fourier_complex = zeros(1,number_of_points);
+            for i = 1:number_of_points
+                y_fourier_complex(i)=0;
+                for k = 1:K
+                    y_fourier_complex(i) = y_fourier_complex(i) + C(k) * exp(1j * 2 * pi * k * (i - 1) / number_of_points);
+                end
+                y_fourier_complex(i) = C0 / 2 + y_fourier_complex(i);
+            end
+            y_fourier_complex = real(y_fourier_complex);
+            %%%i=1:number_of_points;
+            %%%figure
+            %%%plot(i,y_accumulated);
+            %%%axis tight;
+            %%%title('Исходная и восстановленная функция')
+            %%%xlabel('Номер элемента массива')
+            %%%hold on;
+            %%%plot(i,real(y),'r-');
+            %%%axis tight;
+            %%%hold off;
+
+            % ----------------------------------------
+            % Draw new chart in the same figure
+            % ----------------------------------------
+            hold(app.UIAxesSignals, 'on');
+            plot(app.UIAxesSignals, x, y_fourier_complex, 'm');
+            hold(app.UIAxesSignals, 'off');
+            % ----------------------------------------
+            
+            % ----------------------------------------
+            % Находим СКО
+            % ----------------------------------------
+            for i = 1:number_of_points
+              dy(i) = real(y_fourier_complex(i)) - y_accumulated(i);%абсолютная погрешность восстановления
+            end
+            dy_in_percents = dy / (max(y_accumulated) - min(y_accumulated)) * 100;
+            CKO=std(dy);
+            CKO_in_percents = std(dy_in_percents)%СКО в процентах
+            % ----------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             % ----------------------------------------
             % Обновляем правый график зависимости погрешности от K
             % ----------------------------------------
             % Add new row to the table
-            app.FourierData = [app.FourierData; K SKO_in_percents SKO_in_percents + 1];
+            app.FourierData = [app.FourierData; K SKO_in_percents CKO_in_percents];
 
             % Sort values to make sure they are ascending
             app.FourierData = sortrows(app.FourierData);
