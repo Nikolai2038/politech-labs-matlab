@@ -4,8 +4,10 @@ classdef application < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         ModelSignalGeneratorUIFigure    matlab.ui.Figure
-        RemoveFromTableButton           matlab.ui.control.Button
-        AddToTableButton                matlab.ui.control.Button
+        FouriercomplexLabel             matlab.ui.control.Label
+        FourierLabel                    matlab.ui.control.Label
+        SignalLabel                     matlab.ui.control.Label
+        ClearTableButton                matlab.ui.control.Button
         UITable                         matlab.ui.control.Table
         TheNumberOfFourierSeriesTermsEditFieldLabelKMax  matlab.ui.control.Label
         TheNumberOfFourierSeriesTermsEditFieldLabelKMin  matlab.ui.control.Label
@@ -27,7 +29,7 @@ classdef application < matlab.apps.AppBase
         PeriodsNumberkpEditField        matlab.ui.control.NumericEditField
         PeriodsNumberLabel              matlab.ui.control.Label
         QuitButton                      matlab.ui.control.Button
-        StartButton                     matlab.ui.control.Button
+        GenerateButton                  matlab.ui.control.Button
         UIAxes_2                        matlab.ui.control.UIAxes
         UIAxes                          matlab.ui.control.UIAxes
     end
@@ -35,6 +37,41 @@ classdef application < matlab.apps.AppBase
     
     properties (Access = private)
         TableData
+    end
+    
+    methods (Access = private)
+        function UpdateTableChart(app)
+            if (isempty(app.TableData))
+                % Empty the data
+                app.UITable.Data = [];
+
+                % Clear chart
+                cla(app.UIAxes_2);
+            else
+                % Load data from variable
+                app.UITable.Data = array2table(app.TableData,'VariableNames',{'K','SKO'});
+    
+                x = app.UITable.Data.K;
+                y = app.UITable.Data.SKO;
+    
+                % Draw chart
+                plot(app.UIAxes_2, x, y);
+            end
+        end
+        
+        function UpdateMinLimit(app)
+            % Update text in label for minimum
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = app.PeriodsNumberkpEditField.Value + " <=";
+            % Update edit field minimum and maximum (do not include maximum in edit field properties)
+            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
+        end
+        
+        function UpdateMaxLimit(app)
+            % Update text in label for maximum
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = "<= " + app.NumberOfPointsNEditField.Value / 4;
+            % Update edit field minimum and maximum (do not include maximum in edit field properties)
+            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
+        end
     end
     
 
@@ -45,6 +82,9 @@ classdef application < matlab.apps.AppBase
         function startupFcn(app)
             % Create ".m" file with ".mlapp" MATLAB code (for track changes in GIT)
             writelines(evalc('type(mfilename(''fullpath'') + ".mlapp")'), mfilename('fullpath') + ".m");
+
+            app.UpdateMinLimit();
+            app.UpdateMaxLimit();
         end
 
         % Button pushed function: QuitButton
@@ -53,16 +93,15 @@ classdef application < matlab.apps.AppBase
             app.delete();
         end
 
-        % Button pushed function: StartButton
-        function StartButtonPushed(app, event)
+        % Button pushed function: GenerateButton
+        function GenerateButtonPushed(app, event)
             % Количество периодов гармонической функции (kp)
             periods_number = app.PeriodsNumberkpEditField.Value;
             
             % Количество членов ряда Фурье (K)
-            %K = app.TheNumberOfFourierSeriesTermsEditField.Value;
-            K = 128;
+            K = app.TheNumberOfFourierSeriesTermsEditField.Value;
 
-            % Количество отсчетов (элементов массива y(t))
+            % Количество отсчетов (элементов массива y(t)) (number_of_points)
             number_of_points = app.NumberOfPointsNEditField.Value;
             
             noise_sko = app.NoiseSKOEditField.Value;
@@ -76,7 +115,7 @@ classdef application < matlab.apps.AppBase
             y_accumulated = zeros(1, number_of_points);
 
             % Define frequency
-            frequency = 2 * pi * periods_number / 1000;
+            frequency = 2 * pi * periods_number / number_of_points;
 
             for iteration = 1:number_of_accumulations
                 % Create Y array
@@ -117,7 +156,112 @@ classdef application < matlab.apps.AppBase
             y_accumulated = y_accumulated / number_of_accumulations;
 
             % Draw graph in axes object
-            plot(app.UIAxes, x, y_accumulated);
+            plot(app.UIAxes, x, y_accumulated, 'r');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            Sa0 = sum(y_accumulated) / number_of_points; %вычисленный коэф. a0/2
+
+
+
+
+
+
+
+
+
+
+
+
+            y = zeros(1,number_of_points);
+            Sa = zeros(1,K);
+            Sb = zeros(1,K);
+            
+            % Показатель степени функции t^p
+            p=4;
+
+            f=y_accumulated;
+
+
+            for i=1:number_of_points
+                for j=1:K
+                    Sa(j) = (Sa(j)+f(i)*cos((j)*2*pi*(i-1-number_of_points/2)/number_of_points));
+                    Sb(j) = (Sb(j)+f(i)*sin((j)*2*pi*(i-1-number_of_points/2)/number_of_points));
+                end
+            
+            end
+            for j=1:K
+                Sa(j)=Sa(j)*(1/(number_of_points/2));
+                Sb(j)=Sb(j)*(1/(number_of_points/2));
+                % Saa(j)= 4*(-1)^j/(j^2);%теоретически определенный коэф. аk для функции t^2
+            end
+            %SSaa=Saa %теоретически определенные коэф. аk для функции t^2
+            % i=1:K;
+            % figure
+            % plot(i,Sa);
+            % title('Коэффициенты Sa');
+            
+            
+            %Вычисление и отображение спектра амплитуд (начало)
+            %%%for j=1:K
+            %%%    Sab(j)=sqrt(Sa(j)^2+Sb(j)^2);
+            %%%end
+            %%%K1=K;
+            %%%i=1:K1;
+            %%%figure
+            %%%plot(i,Sab(i));
+            %%%stem(Sab(1:K1)); %вывод графика  дискретной последовательности данных
+            %%%axis([1 8 -0.2 1.2]);%задание осей: [xmin xmax ymin ymax]
+            %%%title('Амплитуды частотных составляющих спектра');
+            %%%xlabel('Количество периодов')
+            %%%axis tight;
+
+
+
+            %Вычисление и отображение спектра амплитуд (конец)
+            y=zeros(1,number_of_points);
+            for i=1:number_of_points
+                for j=1:K
+                    y(i)= y(i)+Sa(j)*cos(j*2*pi*(i-1-number_of_points/2)/number_of_points)+Sb(j)*sin(j*2*pi*(i-1-number_of_points/2)/number_of_points); %%%%%%%%
+                end
+                  y(i)=(Sa0+y(i));
+            end
+            i=1:number_of_points;
+            %%%figure
+            %%%hold on;
+            %%%plot(i,y, 'g');
+            %%%axis tight;
+            %%% hold off;
+            hold(app.UIAxes,'on');
+            plot(app.UIAxes, i, y, 'b');
+            hold(app.UIAxes,'off');
+            
+            for i=2:number_of_points
+              dy(i)=y(i)-f(i);%абсолютная погрешность восстановления
+            end
+            dy_proc=dy/(max(f)-min(f))*100;
+            CKO=std(dy);
+            CKO_proc=std(dy_proc)%СКО в процентах
+            
+            % Add new row to the table
+            app.TableData = [app.TableData; K CKO_proc];
+
+            % Sort values to make sure they are ascending
+            app.TableData = sortrows(app.TableData);
+            
+            % Redraw table chart
+            app.UpdateTableChart();
         end
 
         % Value changed function: NoiseTypeDropDown
@@ -133,149 +277,18 @@ classdef application < matlab.apps.AppBase
 
         % Value changed function: NumberOfPointsNEditField
         function NumberOfPointsNEditFieldValueChanged(app, event)
-            % Update text in label for maximum
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = "<= " + app.NumberOfPointsNEditField.Value / 4;
-            % Update edit field minimum and maximum (do not include maximum in edit field properties)
-            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
+            app.UpdateMaxLimit();
         end
 
         % Value changed function: PeriodsNumberkpEditField
         function PeriodsNumberkpEditFieldValueChanged(app, event)
-            % Update text in label for minimum
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = app.PeriodsNumberkpEditField.Value + " <";
-            % Update edit field minimum and maximum (do not include maximum in edit field properties)
-            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
+            app.UpdateMinLimit();
         end
 
-        % Button pushed function: AddToTableButton
-        function AddToTableButtonPushed(app, event)
-            % Количество членов ряда Фурье
-            %K = app.TheNumberOfFourierSeriesTermsEditField.Value;
-            K = 128;
-            
-            % Количество отсчетов (элементов массива y(t))
-            %N = app.NumberOfPointsNEditField.Value;
-            N = 1024;
-
-            % Количество периодов гармонической функции
-            %kp = app.PeriodsNumberkpEditField.Value;
-            kp = 4.5;
-
-            % Диапазон изменения функции f(i) равен +/-T
-            T=pi;
-
-            y = zeros(1,N+1);
-            Sa = zeros(1,K);
-            Sb = zeros(1,K);
-            
-            % Показатель степени функции t^p
-            p=4;
-
-            f=zeros(1,N+1);
-            Sa0=0;
-            for i=1:N+1
-                f(i)=sin(2*pi*kp*(i-1)/N); % гармоническая функция
-                x(i)=(2*T*(((i-1-N/2))/N));
-                %f(i)=x(i)*cos(x(i));
-                %f(i)=(-tan(x(i)/2))/2;
-                % f(i)=log(2+cos(x(i)/2));%вариант 10
-                % f(i)=log(1+x(i)^p);
-                % f(i)= (2*T*(((i-1-N/2))/N))^p; %функция t^p
-                % f(i)=x(i)^3-1;
-                %f(i)=x(i)^p;
-                % f(i)=abs(x(i));
-                % f(i)=sinh(x(i));
-                % f(i)=sin(x(i));
-                %f(i)=cosh(x(i)); %Вариант 14 - f(x)=ch(x)
-                % f(i)=x(i)*exp(x(i));
-                %f(i)=exp(x(i));
-                
-                Sa0=Sa0+f(i);
-            end
-            Sa0=Sa0/N; %вычисленный коэф. a0/2
-            %Saa0=pi^2/3 %%теоретически определенные коэф. а0/2 для функции t^2
-            figure
-            i=1:N;
-            plot(i,f(i));
-            title('f(i)');
-            axis tight;
-            for i=1:N+1
-                for j=1:K
-                    Sa(j) = (Sa(j)+f(i)*cos((j)*2*pi*(i-1-N/2)/N));
-                    Sb(j) = (Sb(j)+f(i)*sin((j)*2*pi*(i-1-N/2)/N));
-                end
-            
-            end
-            for j=1:K
-                Sa(j)=Sa(j)*(1/(N/2));
-                Sb(j)=Sb(j)*(1/(N/2));
-                % Saa(j)= 4*(-1)^j/(j^2);%теоретически определенный коэф. аk для функции t^2
-            end
-            SSa=Sa; %коэффициенты ak
-            SSb=Sb; %коэффициенты bk
-            %SSaa=Saa %теоретически определенные коэф. аk для функции t^2
-            % i=1:K;
-            % figure
-            % plot(i,Sa);
-            % title('Коэффициенты Sa');
-            %Вычисление и отображение спектра амплитуд (начало)
-            for j=1:K
-                Sab(j)=sqrt(Sa(j)^2+Sb(j)^2);
-            end
-            K1=K;
-            i=1:K1;
-            figure
-            plot(i,Sab(i));
-            stem(Sab(1:K1)); %вывод графика  дискретной последовательности данных
-            axis([1 8 -0.2 1.2]);%задание осей: [xmin xmax ymin ymax]
-            title('Амплитуды частотных составляющих спектра');
-            xlabel('Количество периодов')
-            axis tight;
-            %Вычисление и отображение спектра амплитуд (конец)
-            y=zeros(1,N+1);
-            for i=1:N+1
-                for j=1:K
-                    y(i)= y(i)+Sa(j)*cos(j*2*pi*(i-1-N/2)/N)+Sb(j)*sin(j*2*pi*(i-1-N/2)/N); %%%%%%%%
-                end
-                  y(i)=(Sa0+y(i));
-            end
-            i=1:N+1;
-            figure
-            plot(i,f);
-            axis tight;
-            hold on;
-            plot(i,y,'r-')
-            hold off;
-            
-            for i=2:N
-              dy(i)=y(i)-f(i);%абсолютная погрешность восстановления
-            end
-            dy_proc=dy/(max(f)-min(f))*100;
-            CKO=std(dy);
-            CKO_proc=std(dy_proc)%СКО в процентах
-
-
-            SKO = CKO_proc
-
-            
-            % Add new row to the table
-            app.TableData = [app.TableData; K SKO];
-            app.UITable.Data = array2table(app.TableData,'VariableNames',{'K','SKO'});
-
-            % Update chart
-            x = app.UITable.Data.K;
-            y = app.UITable.Data.SKO;
-
-            plot(app.UIAxes_2, x, y);
-            %hold(app.UIAxes_2,'on');
-            %plot(app.UIAxes_2, y, x);
-            %hold(app.UIAxes_2,'off');
-        end
-
-        % Button pushed function: RemoveFromTableButton
-        function RemoveFromTableButtonPushed(app, event)
+        % Button pushed function: ClearTableButton
+        function ClearTableButtonPushed(app, event)
             app.TableData = [];
-            app.UITable.Data = app.TableData;
+            app.UpdateTableChart();
         end
     end
 
@@ -295,7 +308,7 @@ classdef application < matlab.apps.AppBase
             xlabel(app.UIAxes, 'N')
             ylabel(app.UIAxes, 'S')
             zlabel(app.UIAxes, 'Z')
-            app.UIAxes.Position = [201 74 410 360];
+            app.UIAxes.Position = [201 74 410 333];
 
             % Create UIAxes_2
             app.UIAxes_2 = uiaxes(app.ModelSignalGeneratorUIFigure);
@@ -304,12 +317,12 @@ classdef application < matlab.apps.AppBase
             zlabel(app.UIAxes_2, 'Z')
             app.UIAxes_2.Position = [806 78 410 360];
 
-            % Create StartButton
-            app.StartButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
-            app.StartButton.ButtonPushedFcn = createCallbackFcn(app, @StartButtonPushed, true);
-            app.StartButton.BackgroundColor = [0.9137 1 0.8];
-            app.StartButton.Position = [411 26 93 23];
-            app.StartButton.Text = 'Start';
+            % Create GenerateButton
+            app.GenerateButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
+            app.GenerateButton.ButtonPushedFcn = createCallbackFcn(app, @GenerateButtonPushed, true);
+            app.GenerateButton.BackgroundColor = [0.9137 1 0.8];
+            app.GenerateButton.Position = [411 26 93 23];
+            app.GenerateButton.Text = 'Generate';
 
             % Create QuitButton
             app.QuitButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
@@ -330,7 +343,7 @@ classdef application < matlab.apps.AppBase
             app.PeriodsNumberkpEditField.ValueChangedFcn = createCallbackFcn(app, @PeriodsNumberkpEditFieldValueChanged, true);
             app.PeriodsNumberkpEditField.HorizontalAlignment = 'center';
             app.PeriodsNumberkpEditField.Position = [28 110 155 22];
-            app.PeriodsNumberkpEditField.Value = 2;
+            app.PeriodsNumberkpEditField.Value = 4.5;
 
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -404,7 +417,7 @@ classdef application < matlab.apps.AppBase
             app.ModelSignalGeneratorLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ModelSignalGeneratorLabel.HorizontalAlignment = 'center';
             app.ModelSignalGeneratorLabel.FontSize = 24;
-            app.ModelSignalGeneratorLabel.Position = [2 448 630 31];
+            app.ModelSignalGeneratorLabel.Position = [2 448 1255 31];
             app.ModelSignalGeneratorLabel.Text = 'Model Signal Generator';
 
             % Create NumberOfAccumulationsLabel
@@ -426,17 +439,15 @@ classdef application < matlab.apps.AppBase
             app.ThenumberofFourierseriestermsKkpKN4Label.HorizontalAlignment = 'center';
             app.ThenumberofFourierseriestermsKkpKN4Label.WordWrap = 'on';
             app.ThenumberofFourierseriestermsKkpKN4Label.Position = [22 51 166 30];
-            app.ThenumberofFourierseriestermsKkpKN4Label.Text = 'The number of Fourier series terms (K, kp <= K < N/4):';
+            app.ThenumberofFourierseriestermsKkpKN4Label.Text = 'The number of Fourier series terms (K, kp <= K <= N/4):';
 
             % Create TheNumberOfFourierSeriesTermsEditField
             app.TheNumberOfFourierSeriesTermsEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
-            app.TheNumberOfFourierSeriesTermsEditField.LowerLimitInclusive = 'off';
-            app.TheNumberOfFourierSeriesTermsEditField.UpperLimitInclusive = 'off';
             app.TheNumberOfFourierSeriesTermsEditField.RoundFractionalValues = 'on';
             app.TheNumberOfFourierSeriesTermsEditField.ValueDisplayFormat = '%.0f';
             app.TheNumberOfFourierSeriesTermsEditField.HorizontalAlignment = 'center';
             app.TheNumberOfFourierSeriesTermsEditField.Position = [73 27 66 22];
-            app.TheNumberOfFourierSeriesTermsEditField.Value = 2;
+            app.TheNumberOfFourierSeriesTermsEditField.Value = 128;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -449,27 +460,41 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.WordWrap = 'on';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Position = [143 28 59 22];
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = '< 256';
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = '<= 256';
 
             % Create UITable
             app.UITable = uitable(app.ModelSignalGeneratorUIFigure);
             app.UITable.ColumnName = {'K'; 'SKO'};
             app.UITable.RowName = {};
-            app.UITable.Position = [632 194 157 223];
+            app.UITable.Position = [634 152 157 269];
 
-            % Create AddToTableButton
-            app.AddToTableButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
-            app.AddToTableButton.ButtonPushedFcn = createCallbackFcn(app, @AddToTableButtonPushed, true);
-            app.AddToTableButton.BackgroundColor = [0.9137 1 0.8];
-            app.AddToTableButton.Position = [632 160 157 23];
-            app.AddToTableButton.Text = 'Add to table';
+            % Create ClearTableButton
+            app.ClearTableButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
+            app.ClearTableButton.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButtonPushed, true);
+            app.ClearTableButton.BackgroundColor = [1 0.9059 0.6784];
+            app.ClearTableButton.Position = [633 110 157 23];
+            app.ClearTableButton.Text = 'Clear table';
 
-            % Create RemoveFromTableButton
-            app.RemoveFromTableButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
-            app.RemoveFromTableButton.ButtonPushedFcn = createCallbackFcn(app, @RemoveFromTableButtonPushed, true);
-            app.RemoveFromTableButton.BackgroundColor = [1 0.9059 0.6784];
-            app.RemoveFromTableButton.Position = [633 130 157 23];
-            app.RemoveFromTableButton.Text = 'Remove from table';
+            % Create SignalLabel
+            app.SignalLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.SignalLabel.BackgroundColor = [1 1 1];
+            app.SignalLabel.FontColor = [1 0 0];
+            app.SignalLabel.Position = [288 415 38 22];
+            app.SignalLabel.Text = 'Signal';
+
+            % Create FourierLabel
+            app.FourierLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.FourierLabel.BackgroundColor = [1 1 1];
+            app.FourierLabel.FontColor = [0 0 1];
+            app.FourierLabel.Position = [381 415 43 22];
+            app.FourierLabel.Text = 'Fourier';
+
+            % Create FouriercomplexLabel
+            app.FouriercomplexLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.FouriercomplexLabel.BackgroundColor = [1 1 1];
+            app.FouriercomplexLabel.FontColor = [1 0 1];
+            app.FouriercomplexLabel.Position = [469 415 99 22];
+            app.FouriercomplexLabel.Text = 'Fourier (complex)';
 
             % Show the figure after all components are created
             app.ModelSignalGeneratorUIFigure.Visible = 'on';
