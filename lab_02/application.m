@@ -84,6 +84,11 @@ classdef application < matlab.apps.AppBase
             % Update edit field minimum and maximum (do not include maximum in edit field properties)
             app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
         end
+        
+        function ClearTable(app)
+            app.TableData = [];
+            app.UpdateTableChart();
+        end
     end
     
 
@@ -129,6 +134,9 @@ classdef application < matlab.apps.AppBase
             % Define frequency
             frequency = 2 * pi * periods_number / number_of_points;
 
+            % ----------------------------------------
+            % Высчитываем точки самого сигнала
+            % ----------------------------------------
             for iteration = 1:number_of_accumulations
                 % Create Y array
                 y = zeros(1, number_of_points);
@@ -153,7 +161,7 @@ classdef application < matlab.apps.AppBase
                         y(i) = sawtooth(frequency * i, 0.5);
                     elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
                         y(i) = square(frequency * i);
-                    elseif (app.SignalTypeDropDown.Value == "f(x) = abs(sin(x))")
+                    elseif (app.SignalTypeDropDown.Value == "y_accumulated(x) = abs(sin(x))")
                         y(i) = abs(sin(frequency * i));
                     end
                     y(i) = y(i) * signal_aplitude;
@@ -166,117 +174,80 @@ classdef application < matlab.apps.AppBase
 
             % Normalize the accumulated results
             y_accumulated = y_accumulated / number_of_accumulations;
+            % ----------------------------------------
 
+            % ----------------------------------------
             % Draw graph in axes object
+            % ----------------------------------------
             plot(app.UIAxes, x, y_accumulated, 'r');
+            % ----------------------------------------
 
+            % ----------------------------------------
+            % Высчитываем точки ряда Фурье
+            % ----------------------------------------
+            Sa0 = sum(y_accumulated) / number_of_points;
 
-
-
-
-
-
-
-
-
-
-
-
-
-            Sa0 = sum(y_accumulated) / number_of_points; %вычисленный коэф. a0/2
-
-
-
-
-
-
-
-
-
-
-
-
-            y = zeros(1,number_of_points);
             Sa = zeros(1,K);
             Sb = zeros(1,K);
-            
-            % Показатель степени функции t^p
-            p=4;
-
-            f=y_accumulated;
-
-
-            for i=1:number_of_points
-                for j=1:K
-                    Sa(j) = (Sa(j)+f(i)*cos((j)*2*pi*(i-1-number_of_points/2)/number_of_points));
-                    Sb(j) = (Sb(j)+f(i)*sin((j)*2*pi*(i-1-number_of_points/2)/number_of_points));
+            for i = 1:number_of_points
+                for j = 1:K
+                    Sa(j) = Sa(j) + y_accumulated(i) * cos((j) * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
+                    Sb(j) = Sb(j) + y_accumulated(i) * sin((j) * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
                 end
             
             end
-            for j=1:K
-                Sa(j)=Sa(j)*(1/(number_of_points/2));
-                Sb(j)=Sb(j)*(1/(number_of_points/2));
-                % Saa(j)= 4*(-1)^j/(j^2);%теоретически определенный коэф. аk для функции t^2
+            for j = 1:K
+                Sa(j) = Sa(j) * 2 / number_of_points;
+                Sb(j) = Sb(j) * 2 / number_of_points;
             end
-            %SSaa=Saa %теоретически определенные коэф. аk для функции t^2
-            % i=1:K;
-            % figure
-            % plot(i,Sa);
-            % title('Коэффициенты Sa');
-            
-            
-            %Вычисление и отображение спектра амплитуд (начало)
-            %%%for j=1:K
-            %%%    Sab(j)=sqrt(Sa(j)^2+Sb(j)^2);
-            %%%end
-            %%%K1=K;
-            %%%i=1:K1;
-            %%%figure
-            %%%plot(i,Sab(i));
-            %%%stem(Sab(1:K1)); %вывод графика  дискретной последовательности данных
-            %%%axis([1 8 -0.2 1.2]);%задание осей: [xmin xmax ymin ymax]
-            %%%title('Амплитуды частотных составляющих спектра');
-            %%%xlabel('Количество периодов')
-            %%%axis tight;
 
-
-
-            %Вычисление и отображение спектра амплитуд (конец)
-            y=zeros(1,number_of_points);
-            for i=1:number_of_points
-                for j=1:K
-                    y(i)= y(i)+Sa(j)*cos(j*2*pi*(i-1-number_of_points/2)/number_of_points)+Sb(j)*sin(j*2*pi*(i-1-number_of_points/2)/number_of_points); %%%%%%%%
+            y = zeros(1,number_of_points);
+            for i = 1:number_of_points
+                for j = 1:K
+                    y(i) = y(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
                 end
-                  y(i)=(Sa0+y(i));
+                  y(i) = Sa0 + y(i);
             end
-            i=1:number_of_points;
-            %%%figure
-            %%%hold on;
-            %%%plot(i,y, 'g');
-            %%%axis tight;
-            %%% hold off;
-            hold(app.UIAxes,'on');
+            % ----------------------------------------
+
+            % ----------------------------------------
+            % Draw new chart in the same figure
+            % ----------------------------------------
+            hold(app.UIAxes, 'on');
             plot(app.UIAxes, i, y, 'b');
-            hold(app.UIAxes,'off');
+            hold(app.UIAxes, 'off');
+            % ----------------------------------------
             
-            for i=2:number_of_points
-              dy(i)=y(i)-f(i);%абсолютная погрешность восстановления
+            % ----------------------------------------
+            % Находим СКО
+            % ----------------------------------------
+            % Абсолютная погрешность восстановления  
+            dy = zeros(1,number_of_points);
+            for i = 1:number_of_points
+                dy(i) = y(i) - y_accumulated(i);
             end
-            dy_proc=dy/(max(f)-min(f))*100;
-            CKO=std(dy);
-            CKO_proc=std(dy_proc)%СКО в процентах
+            dy_in_percents = dy / (max(y_accumulated) - min(y_accumulated)) * 100;
+
+            % СКО в процентах
+            SKO_in_percents = std(dy_in_percents);
+            % ----------------------------------------
             
+            % ----------------------------------------
+            % Обновляем правый график зависимости погрешности от K
+            % ----------------------------------------
             % Add new row to the table
-            app.TableData = [app.TableData; K CKO_proc];
+            app.TableData = [app.TableData; K SKO_in_percents];
 
             % Sort values to make sure they are ascending
             app.TableData = sortrows(app.TableData);
 
             % Filter same values
-            app.TableData = unique(app.TableData, 'rows');
-            
+            [~,ia,~] = unique(app.TableData(:,1), 'rows');
+            app.TableData = app.TableData(ia,:);
+
             % Redraw table chart
             app.UpdateTableChart();
+            % ----------------------------------------
         end
 
         % Value changed function: NoiseTypeDropDown
@@ -288,22 +259,39 @@ classdef application < matlab.apps.AppBase
                 app.NoiseSKOLabel.Enable = "on";
                 app.NoiseSKOEditField.Enable = "on";
             end
+            ClearTable(app);
         end
 
         % Value changed function: NumberOfPointsNEditField
         function NumberOfPointsNEditFieldValueChanged(app, event)
             app.UpdateMaxLimit();
+            ClearTable(app);
         end
 
         % Value changed function: PeriodsNumberkpEditField
         function PeriodsNumberkpEditFieldValueChanged(app, event)
             app.UpdateMinLimit();
+            ClearTable(app);
         end
 
         % Button pushed function: ClearTableButton
         function ClearTableButtonPushed(app, event)
-            app.TableData = [];
-            app.UpdateTableChart();
+            ClearTable(app);
+        end
+
+        % Value changed function: NoiseSKOEditField
+        function NoiseSKOEditFieldValueChanged(app, event)
+            ClearTable(app);
+        end
+
+        % Value changed function: SignalTypeDropDown
+        function SignalTypeDropDownValueChanged(app, event)
+            ClearTable(app);
+        end
+
+        % Value changed function: NumberOfAccumulationsEditField
+        function NumberOfAccumulationsEditFieldValueChanged(app, event)
+            ClearTable(app);
         end
     end
 
@@ -376,6 +364,7 @@ classdef application < matlab.apps.AppBase
             % Create NoiseSKOEditField
             app.NoiseSKOEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
             app.NoiseSKOEditField.ValueDisplayFormat = '%9.1f';
+            app.NoiseSKOEditField.ValueChangedFcn = createCallbackFcn(app, @NoiseSKOEditFieldValueChanged, true);
             app.NoiseSKOEditField.HorizontalAlignment = 'center';
             app.NoiseSKOEditField.Enable = 'off';
             app.NoiseSKOEditField.Position = [28 173 155 22];
@@ -431,6 +420,7 @@ classdef application < matlab.apps.AppBase
             % Create SignalTypeDropDown
             app.SignalTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
             app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))'};
+            app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
             app.SignalTypeDropDown.Position = [28 395 155 22];
             app.SignalTypeDropDown.Value = 'Harmonic (Sinusoidal)';
 
@@ -451,6 +441,7 @@ classdef application < matlab.apps.AppBase
             app.NumberOfAccumulationsEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
             app.NumberOfAccumulationsEditField.RoundFractionalValues = 'on';
             app.NumberOfAccumulationsEditField.ValueDisplayFormat = '%.0f';
+            app.NumberOfAccumulationsEditField.ValueChangedFcn = createCallbackFcn(app, @NumberOfAccumulationsEditFieldValueChanged, true);
             app.NumberOfAccumulationsEditField.HorizontalAlignment = 'center';
             app.NumberOfAccumulationsEditField.Position = [237 27 155 22];
             app.NumberOfAccumulationsEditField.Value = 1;
