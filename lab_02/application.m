@@ -201,12 +201,12 @@ classdef application < matlab.apps.AppBase
                 Sb(j) = Sb(j) * 2 / number_of_points;
             end
 
-            y = zeros(1,number_of_points);
+            y_fourier = zeros(1,number_of_points);
             for i = 1:number_of_points
                 for j = 1:K
-                    y(i) = y(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
+                    y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
                 end
-                  y(i) = Sa0 + y(i);
+                  y_fourier(i) = Sa0 + y_fourier(i);
             end
             % ----------------------------------------
 
@@ -214,7 +214,7 @@ classdef application < matlab.apps.AppBase
             % Draw new chart in the same figure
             % ----------------------------------------
             hold(app.UIAxes, 'on');
-            plot(app.UIAxes, i, y, 'b');
+            plot(app.UIAxes, i, y_fourier, 'b');
             hold(app.UIAxes, 'off');
             % ----------------------------------------
             
@@ -222,14 +222,14 @@ classdef application < matlab.apps.AppBase
             % Находим СКО
             % ----------------------------------------
             % Абсолютная погрешность восстановления  
-            dy = zeros(1,number_of_points);
+            y_fourier_deviation = zeros(1,number_of_points);
             for i = 1:number_of_points
-                dy(i) = y(i) - y_accumulated(i);
+                y_fourier_deviation(i) = y_fourier(i) - y_accumulated(i);
             end
-            dy_in_percents = dy / (max(y_accumulated) - min(y_accumulated)) * 100;
+            y_fourier_deviation_in_percents = y_fourier_deviation / (max(y_accumulated) - min(y_accumulated)) * 100;
 
             % СКО в процентах
-            SKO_in_percents = std(dy_in_percents);
+            SKO_in_percents = std(y_fourier_deviation_in_percents);
             % ----------------------------------------
             
             % ----------------------------------------
@@ -241,7 +241,7 @@ classdef application < matlab.apps.AppBase
             % Sort values to make sure they are ascending
             app.TableData = sortrows(app.TableData);
 
-            % Filter same values
+            % Filter rows with same first column (K)
             [~,ia,~] = unique(app.TableData(:,1), 'rows');
             app.TableData = app.TableData(ia,:);
 
