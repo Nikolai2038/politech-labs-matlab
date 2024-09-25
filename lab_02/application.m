@@ -140,7 +140,7 @@ classdef application < matlab.apps.AppBase
             frequency = 2 * pi * periods_number / number_of_points;
 
             % ----------------------------------------
-            % Высчитываем точки самого сигнала
+            % Изначальный сигнал: Высчитываем
             % ----------------------------------------
             for iteration = 1:number_of_accumulations
                 % Create Y array
@@ -182,13 +182,13 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
 
             % ----------------------------------------
-            % Draw graph in axes object
+            % Изначальный сигнал: Рисуем график
             % ----------------------------------------
             plot(app.UIAxesSignals, x, y_accumulated, 'r');
             % ----------------------------------------
 
             % ----------------------------------------
-            % Высчитываем точки действительного ряда Фурье
+            % Действительный ряд Фурье: Высчитываем
             % ----------------------------------------
             Sa0 = sum(y_accumulated) / number_of_points;
 
@@ -216,7 +216,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
 
             % ----------------------------------------
-            % Draw new chart in the same figure
+            % Действительный ряд Фурье: Рисуем график в той же фигуре
             % ----------------------------------------
             hold(app.UIAxesSignals, 'on');
             plot(app.UIAxesSignals, x, y_fourier, 'b');
@@ -224,7 +224,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             
             % ----------------------------------------
-            % Находим СКО
+            % Действительный ряд Фурье: Находим СКО
             % ----------------------------------------
             % Абсолютная погрешность восстановления  
             y_fourier_deviation = zeros(1,number_of_points);
@@ -237,20 +237,8 @@ classdef application < matlab.apps.AppBase
             SKO_in_percents = std(y_fourier_deviation_in_percents);
             % ----------------------------------------
             
-
-
-
-
-
-
-
-
-
-
-            
-            
             % ----------------------------------------
-            % Высчитываем точки комплексного ряда Фурье
+            % Комплексный ряд Фурье: Высчитываем
             % ----------------------------------------
             C0 = sum(y_accumulated) * 2 / number_of_points;
             C = zeros(1,K);
@@ -262,43 +250,18 @@ classdef application < matlab.apps.AppBase
             for k = 1:K
                 C(k) = C(k) * (2 / number_of_points);
             end
-            %%%%Вычисление и отображение спектра амплитуд (начало)
-            %%%for k = 1:K
-            %%%    Cab(k) = abs(C(k));%коэффициенты Cab(k)- комплексные числа вида a+jb,
-            %%%     %функция abs вычисляет sqrt(a^2+b^2 )
-            %%%end
-            %%%k=1:K;
-            %%%figure
-            %%%plot(k,Cab);
-            %%%stem(Cab(1:K)); %вывод графика  дискретной последовательности данных
-            %%%axis([1 8 -0.2 1.2]);%задание осей: [xmin xmax ymin ymax]
-            %%%title('Амплитуды частотных составляющих спектра');
-            %%%xlabel('Количество периодов')
-            %%%axis tight;
 
-            %Вычисление и отображение спектра амплитуд (конец)
-            %%%%%%%%%%%y_fourier_complex = zeros(1,number_of_points);
+            y_fourier_complex = zeros(1,number_of_points);
             for i = 1:number_of_points
-                y_fourier_complex(i)=0;
                 for k = 1:K
                     y_fourier_complex(i) = y_fourier_complex(i) + C(k) * exp(1j * 2 * pi * k * (i - 1) / number_of_points);
                 end
                 y_fourier_complex(i) = C0 / 2 + y_fourier_complex(i);
             end
             y_fourier_complex = real(y_fourier_complex);
-            %%%i=1:number_of_points;
-            %%%figure
-            %%%plot(i,y_accumulated);
-            %%%axis tight;
-            %%%title('Исходная и восстановленная функция')
-            %%%xlabel('Номер элемента массива')
-            %%%hold on;
-            %%%plot(i,real(y),'r-');
-            %%%axis tight;
-            %%%hold off;
 
             % ----------------------------------------
-            % Draw new chart in the same figure
+            % Комплексный ряд Фурье: Рисуем график в той же фигуре
             % ----------------------------------------
             hold(app.UIAxesSignals, 'on');
             plot(app.UIAxesSignals, x, y_fourier_complex, 'm');
@@ -306,42 +269,24 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             
             % ----------------------------------------
-            % Находим СКО
+            % Комплексный ряд Фурье: Находим СКО
             % ----------------------------------------
+            % Абсолютная погрешность восстановления  
+            y_fourier_complex_deviation = zeros(1,number_of_points);
             for i = 1:number_of_points
-              dy(i) = real(y_fourier_complex(i)) - y_accumulated(i);%абсолютная погрешность восстановления
+              y_fourier_complex_deviation(i) = real(y_fourier_complex(i)) - y_accumulated(i);
             end
-            dy_in_percents = dy / (max(y_accumulated) - min(y_accumulated)) * 100;
-            CKO=std(dy);
-            CKO_in_percents = std(dy_in_percents)%СКО в процентах
+            y_fourier_complex_deviation_in_percents = y_fourier_complex_deviation / (max(y_accumulated) - min(y_accumulated)) * 100;
+            
+            % СКО в процентах
+            SKO_complex_in_percents = std(y_fourier_complex_deviation_in_percents);
             % ----------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             % ----------------------------------------
-            % Обновляем правый график зависимости погрешности от K
+            % Обновляем график зависимости погрешности от K
             % ----------------------------------------
             % Add new row to the table
-            app.FourierData = [app.FourierData; K SKO_in_percents CKO_in_percents];
+            app.FourierData = [app.FourierData; K SKO_in_percents SKO_complex_in_percents];
 
             % Sort values to make sure they are ascending
             app.FourierData = sortrows(app.FourierData);
@@ -609,7 +554,7 @@ classdef application < matlab.apps.AppBase
             app.ClearTableButton.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButtonPushed, true);
             app.ClearTableButton.BackgroundColor = [1 0.9059 0.6784];
             app.ClearTableButton.Position = [661 309 376 23];
-            app.ClearTableButton.Text = 'Clear tables';
+            app.ClearTableButton.Text = 'Clear table';
 
             % Create FourierSKOLabel
             app.FourierSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
