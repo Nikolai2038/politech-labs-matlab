@@ -16,3 +16,7 @@
 ## Лабораторная работа 1
 
 ![lab_01](.readme_images/lab_01.png)
+
+## Лабораторная работа 2
+
+![lab_02](.readme_images/lab_02.png)
