@@ -50,12 +50,24 @@ classdef application < matlab.apps.AppBase
             else
                 % Load data from variable
                 app.UITable.Data = array2table(app.TableData,'VariableNames',{'K','SKO'});
-    
                 x = app.UITable.Data.K;
                 y = app.UITable.Data.SKO;
     
+                % ----------------------------------------
                 % Draw chart
-                plot(app.UIAxes_2, x, y);
+                % ----------------------------------------
+                % For interpolation, we need at least 2 different points
+                if (size(app.TableData, 1) >= 2)
+                    % Create 100 more points for interpolation
+                    xq = linspace(min(x), max(x), 100);
+                    
+                    % Apply interpolation
+                    yq = interp1(x, y, xq, 'pchip');
+                    
+                    % Draw chart with soft line and points
+                    plot(app.UIAxes_2, xq, yq, 'b-', x, y, 'ro');
+                end
+                % ----------------------------------------
             end
         end
         
@@ -259,6 +271,9 @@ classdef application < matlab.apps.AppBase
 
             % Sort values to make sure they are ascending
             app.TableData = sortrows(app.TableData);
+
+            % Filter same values
+            app.TableData = unique(app.TableData, 'rows');
             
             % Redraw table chart
             app.UpdateTableChart();
@@ -308,6 +323,9 @@ classdef application < matlab.apps.AppBase
             xlabel(app.UIAxes, 'N')
             ylabel(app.UIAxes, 'S')
             zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Box = 'on';
+            app.UIAxes.XGrid = 'on';
+            app.UIAxes.YGrid = 'on';
             app.UIAxes.Position = [201 74 410 333];
 
             % Create UIAxes_2
@@ -315,6 +333,9 @@ classdef application < matlab.apps.AppBase
             xlabel(app.UIAxes_2, 'K')
             ylabel(app.UIAxes_2, 'SKO')
             zlabel(app.UIAxes_2, 'Z')
+            app.UIAxes_2.Box = 'on';
+            app.UIAxes_2.XGrid = 'on';
+            app.UIAxes_2.YGrid = 'on';
             app.UIAxes_2.Position = [806 78 410 360];
 
             % Create GenerateButton
