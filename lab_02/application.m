@@ -166,7 +166,7 @@ classdef application < matlab.apps.AppBase
                         y(i) = sawtooth(frequency * i, 0.5);
                     elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
                         y(i) = square(frequency * i);
-                    elseif (app.SignalTypeDropDown.Value == "y_accumulated(x) = abs(sin(x))")
+                    elseif (app.SignalTypeDropDown.Value == "f(x) = abs(sin(x))")
                         y(i) = abs(sin(frequency * i));
                     end
                     y(i) = y(i) * signal_aplitude;
@@ -358,7 +358,7 @@ classdef application < matlab.apps.AppBase
 
             % Create ModelSignalGeneratorUIFigure and hide until all components are created
             app.ModelSignalGeneratorUIFigure = uifigure('Visible', 'off');
-            app.ModelSignalGeneratorUIFigure.Position = [100 100 1057 611];
+            app.ModelSignalGeneratorUIFigure.Position = [100 100 1057 629];
             app.ModelSignalGeneratorUIFigure.Name = 'Model Signal Generator';
 
             % Create UIAxesSignals
@@ -369,7 +369,7 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals.Box = 'on';
             app.UIAxesSignals.XGrid = 'on';
             app.UIAxesSignals.YGrid = 'on';
-            app.UIAxesSignals.Position = [201 24 410 501];
+            app.UIAxesSignals.Position = [201 28 410 515];
 
             % Create UIAxesSKO
             app.UIAxesSKO = uiaxes(app.ModelSignalGeneratorUIFigure);
@@ -379,19 +379,19 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSKO.Box = 'on';
             app.UIAxesSKO.XGrid = 'on';
             app.UIAxesSKO.YGrid = 'on';
-            app.UIAxesSKO.Position = [621 24 425 248];
+            app.UIAxesSKO.Position = [625 28 425 248];
 
             % Create GenerateButton
             app.GenerateButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
             app.GenerateButton.ButtonPushedFcn = createCallbackFcn(app, @GenerateButtonPushed, true);
             app.GenerateButton.BackgroundColor = [0.9137 1 0.8];
-            app.GenerateButton.Position = [28 24 156 23];
+            app.GenerateButton.Position = [29 28 156 23];
             app.GenerateButton.Text = 'Generate';
 
             % Create PeriodsNumberLabel
             app.PeriodsNumberLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.PeriodsNumberLabel.HorizontalAlignment = 'right';
-            app.PeriodsNumberLabel.Position = [48 229 119 22];
+            app.PeriodsNumberLabel.Position = [48 247 119 22];
             app.PeriodsNumberLabel.Text = 'Periods Number (kp):';
 
             % Create PeriodsNumberkpEditField
@@ -399,14 +399,14 @@ classdef application < matlab.apps.AppBase
             app.PeriodsNumberkpEditField.ValueDisplayFormat = '%9.1f';
             app.PeriodsNumberkpEditField.ValueChangedFcn = createCallbackFcn(app, @PeriodsNumberkpEditFieldValueChanged, true);
             app.PeriodsNumberkpEditField.HorizontalAlignment = 'center';
-            app.PeriodsNumberkpEditField.Position = [29 208 155 22];
+            app.PeriodsNumberkpEditField.Position = [29 226 155 22];
             app.PeriodsNumberkpEditField.Value = 4.5;
 
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseSKOLabel.HorizontalAlignment = 'right';
             app.NoiseSKOLabel.Enable = 'off';
-            app.NoiseSKOLabel.Position = [69 292 68 22];
+            app.NoiseSKOLabel.Position = [69 310 68 22];
             app.NoiseSKOLabel.Text = 'Noise SKO:';
 
             % Create NoiseSKOEditField
@@ -415,39 +415,39 @@ classdef application < matlab.apps.AppBase
             app.NoiseSKOEditField.ValueChangedFcn = createCallbackFcn(app, @NoiseSKOEditFieldValueChanged, true);
             app.NoiseSKOEditField.HorizontalAlignment = 'center';
             app.NoiseSKOEditField.Enable = 'off';
-            app.NoiseSKOEditField.Position = [29 271 155 22];
+            app.NoiseSKOEditField.Position = [29 289 155 22];
             app.NoiseSKOEditField.Value = 0.1;
 
             % Create SignalAmplitudeLabel
             app.SignalAmplitudeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.SignalAmplitudeLabel.HorizontalAlignment = 'right';
-            app.SignalAmplitudeLabel.Position = [54 417 98 22];
+            app.SignalAmplitudeLabel.Position = [54 435 98 22];
             app.SignalAmplitudeLabel.Text = 'Signal Amplitude:';
 
             % Create SignalAmplitudeEditField
             app.SignalAmplitudeEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
             app.SignalAmplitudeEditField.ValueDisplayFormat = '%9.1f';
             app.SignalAmplitudeEditField.HorizontalAlignment = 'center';
-            app.SignalAmplitudeEditField.Position = [28 396 155 22];
+            app.SignalAmplitudeEditField.Position = [28 414 155 22];
             app.SignalAmplitudeEditField.Value = 1;
 
             % Create NoiseTypeLabel
             app.NoiseTypeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseTypeLabel.HorizontalAlignment = 'right';
-            app.NoiseTypeLabel.Position = [71 350 68 22];
+            app.NoiseTypeLabel.Position = [71 368 68 22];
             app.NoiseTypeLabel.Text = 'Noise Type:';
 
             % Create NoiseTypeDropDown
             app.NoiseTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
             app.NoiseTypeDropDown.Items = {'None', 'Normally Distributed', 'White Gaussian Noise'};
             app.NoiseTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @NoiseTypeDropDownValueChanged, true);
-            app.NoiseTypeDropDown.Position = [29 329 155 22];
+            app.NoiseTypeDropDown.Position = [29 347 155 22];
             app.NoiseTypeDropDown.Value = 'None';
 
             % Create NumberOfPointsLabel
             app.NumberOfPointsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NumberOfPointsLabel.HorizontalAlignment = 'right';
-            app.NumberOfPointsLabel.Position = [45 477 124 22];
+            app.NumberOfPointsLabel.Position = [45 495 124 22];
             app.NumberOfPointsLabel.Text = 'Number Of Points (N):';
 
             % Create NumberOfPointsNEditField
@@ -456,33 +456,33 @@ classdef application < matlab.apps.AppBase
             app.NumberOfPointsNEditField.ValueDisplayFormat = '%.0f';
             app.NumberOfPointsNEditField.ValueChangedFcn = createCallbackFcn(app, @NumberOfPointsNEditFieldValueChanged, true);
             app.NumberOfPointsNEditField.HorizontalAlignment = 'center';
-            app.NumberOfPointsNEditField.Position = [28 456 155 22];
+            app.NumberOfPointsNEditField.Position = [28 474 155 22];
             app.NumberOfPointsNEditField.Value = 1024;
 
             % Create SignalTypeLabel
             app.SignalTypeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.SignalTypeLabel.HorizontalAlignment = 'right';
-            app.SignalTypeLabel.Position = [68 534 71 22];
+            app.SignalTypeLabel.Position = [68 552 71 22];
             app.SignalTypeLabel.Text = 'Signal Type:';
 
             % Create ModelSignalGeneratorLabel
             app.ModelSignalGeneratorLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ModelSignalGeneratorLabel.HorizontalAlignment = 'center';
             app.ModelSignalGeneratorLabel.FontSize = 24;
-            app.ModelSignalGeneratorLabel.Position = [2 569 1056 31];
+            app.ModelSignalGeneratorLabel.Position = [2 587 1056 31];
             app.ModelSignalGeneratorLabel.Text = 'Model Signal Generator';
 
             % Create SignalTypeDropDown
             app.SignalTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
             app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))'};
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [28 513 155 22];
+            app.SignalTypeDropDown.Position = [28 531 155 22];
             app.SignalTypeDropDown.Value = 'Harmonic (Sinusoidal)';
 
             % Create NumberOfAccumulationsLabel
             app.NumberOfAccumulationsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NumberOfAccumulationsLabel.HorizontalAlignment = 'right';
-            app.NumberOfAccumulationsLabel.Position = [32 165 148 22];
+            app.NumberOfAccumulationsLabel.Position = [32 183 148 22];
             app.NumberOfAccumulationsLabel.Text = 'Number Of Accumulations:';
 
             % Create NumberOfAccumulationsEditField
@@ -491,14 +491,14 @@ classdef application < matlab.apps.AppBase
             app.NumberOfAccumulationsEditField.ValueDisplayFormat = '%.0f';
             app.NumberOfAccumulationsEditField.ValueChangedFcn = createCallbackFcn(app, @NumberOfAccumulationsEditFieldValueChanged, true);
             app.NumberOfAccumulationsEditField.HorizontalAlignment = 'center';
-            app.NumberOfAccumulationsEditField.Position = [29 144 155 22];
+            app.NumberOfAccumulationsEditField.Position = [29 162 155 22];
             app.NumberOfAccumulationsEditField.Value = 1;
 
             % Create ThenumberofFourierseriestermsKkpKN4Label
             app.ThenumberofFourierseriestermsKkpKN4Label = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ThenumberofFourierseriestermsKkpKN4Label.HorizontalAlignment = 'center';
             app.ThenumberofFourierseriestermsKkpKN4Label.WordWrap = 'on';
-            app.ThenumberofFourierseriestermsKkpKN4Label.Position = [22 93 166 30];
+            app.ThenumberofFourierseriestermsKkpKN4Label.Position = [22 111 166 30];
             app.ThenumberofFourierseriestermsKkpKN4Label.Text = 'The number of Fourier series terms (K, kp <= K <= N/4):';
 
             % Create TheNumberOfFourierSeriesTermsEditField
@@ -506,68 +506,68 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditField.RoundFractionalValues = 'on';
             app.TheNumberOfFourierSeriesTermsEditField.ValueDisplayFormat = '%.0f';
             app.TheNumberOfFourierSeriesTermsEditField.HorizontalAlignment = 'center';
-            app.TheNumberOfFourierSeriesTermsEditField.Position = [73 69 66 22];
+            app.TheNumberOfFourierSeriesTermsEditField.Position = [73 87 66 22];
             app.TheNumberOfFourierSeriesTermsEditField.Value = 128;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.HorizontalAlignment = 'right';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.WordWrap = 'on';
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Position = [21 69 46 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Position = [21 87 46 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = '2 <=';
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMax
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.WordWrap = 'on';
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Position = [143 70 59 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Position = [143 88 59 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = '<= 256';
 
             % Create SignalLabel
             app.SignalLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.SignalLabel.BackgroundColor = [1 1 1];
             app.SignalLabel.FontColor = [1 0 0];
-            app.SignalLabel.Position = [288 533 38 22];
+            app.SignalLabel.Position = [288 551 38 22];
             app.SignalLabel.Text = 'Signal';
 
             % Create FourierLabel
             app.FourierLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.FourierLabel.BackgroundColor = [1 1 1];
             app.FourierLabel.FontColor = [0 0 1];
-            app.FourierLabel.Position = [381 533 43 22];
+            app.FourierLabel.Position = [381 551 43 22];
             app.FourierLabel.Text = 'Fourier';
 
             % Create FouriercomplexLabel
             app.FouriercomplexLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.FouriercomplexLabel.BackgroundColor = [1 1 1];
             app.FouriercomplexLabel.FontColor = [1 0 1];
-            app.FouriercomplexLabel.Position = [469 533 99 22];
+            app.FouriercomplexLabel.Position = [469 551 99 22];
             app.FouriercomplexLabel.Text = 'Fourier (complex)';
 
             % Create UITableSKO
             app.UITableSKO = uitable(app.ModelSignalGeneratorUIFigure);
             app.UITableSKO.ColumnName = {'K'; 'SKO'; 'SKO_Complex'};
             app.UITableSKO.RowName = {};
-            app.UITableSKO.Position = [661 329 376 189];
+            app.UITableSKO.Position = [661 335 376 201];
 
             % Create ClearTableButton
             app.ClearTableButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
             app.ClearTableButton.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButtonPushed, true);
             app.ClearTableButton.BackgroundColor = [1 0.9059 0.6784];
-            app.ClearTableButton.Position = [661 309 376 23];
+            app.ClearTableButton.Position = [661 315 376 23];
             app.ClearTableButton.Text = 'Clear table';
 
             % Create FourierSKOLabel
             app.FourierSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.FourierSKOLabel.BackgroundColor = [1 1 1];
             app.FourierSKOLabel.FontColor = [0 0 1];
-            app.FourierSKOLabel.Position = [756 275 72 22];
+            app.FourierSKOLabel.Position = [756 279 72 22];
             app.FourierSKOLabel.Text = 'Fourier SKO';
 
             % Create FouriercomplexSKOLabel
             app.FouriercomplexSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.FouriercomplexSKOLabel.BackgroundColor = [1 1 1];
             app.FouriercomplexSKOLabel.FontColor = [1 0 1];
-            app.FouriercomplexSKOLabel.Position = [844 275 128 22];
+            app.FouriercomplexSKOLabel.Position = [844 279 128 22];
             app.FouriercomplexSKOLabel.Text = 'Fourier (complex) SKO';
 
             % Show the figure after all components are created
