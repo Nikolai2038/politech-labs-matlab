@@ -4,6 +4,8 @@ classdef application < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         ModelSignalGeneratorUIFigure    matlab.ui.Figure
+        LogsTextArea                    matlab.ui.control.TextArea
+        LogsTextAreaLabel               matlab.ui.control.Label
         FouriercomplexSKOLabel          matlab.ui.control.Label
         FourierSKOLabel                 matlab.ui.control.Label
         ClearTableButton                matlab.ui.control.Button
@@ -109,7 +111,7 @@ classdef application < matlab.apps.AppBase
             app.UpdateMaxLimit();
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function QuitButtonPushed(app, event)
             % Close the app
             app.delete();
@@ -136,9 +138,8 @@ classdef application < matlab.apps.AppBase
             % Create Y array
             y_accumulated = zeros(1, number_of_points);
 
-            % Define frequency
-            frequency = 2 * pi * periods_number / number_of_points;
-
+            T = pi;
+ 
             % ----------------------------------------
             % Изначальный сигнал: Высчитываем
             % ----------------------------------------
@@ -157,17 +158,18 @@ classdef application < matlab.apps.AppBase
                 noise = noise * noise_sko;
 
                 for i = 1:number_of_points
+                    x_calculated = (2 * T * (((i - 1-number_of_points/2)) / number_of_points));
                     % Fill Y array by selected signal type
                     if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
-                        y(i) = sin(frequency * i);
+                        y(i) = sin(x_calculated * periods_number);
                     elseif (app.SignalTypeDropDown.Value == "Sawtooth")
-                        y(i) = sawtooth(frequency * i);
+                        y(i) = sawtooth(x_calculated);
                     elseif (app.SignalTypeDropDown.Value == "Triangular")
-                        y(i) = sawtooth(frequency * i, 0.5);
+                        y(i) = sawtooth(x_calculated, 0.5);
                     elseif (app.SignalTypeDropDown.Value == "Rectangular Pulses")
-                        y(i) = square(frequency * i);
+                        y(i) = square(x_calculated);
                     elseif (app.SignalTypeDropDown.Value == "f(x) = abs(sin(x))")
-                        y(i) = abs(sin(frequency * i));
+                        y(i) = abs(sin(x_calculated));
                     end
                     y(i) = y(i) * signal_aplitude;
                     y(i) = y(i) + noise(i);
@@ -196,11 +198,16 @@ classdef application < matlab.apps.AppBase
             Sb = zeros(1,K);
             for i = 1:number_of_points
                 for j = 1:K
-                    Sa(j) = Sa(j) + y_accumulated(i) * cos((j) * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
-                    Sb(j) = Sb(j) + y_accumulated(i) * sin((j) * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
+                    Sa_temp = y_accumulated(i) * cos((j) * 2 * T * (i - 1 - number_of_points / 2) / number_of_points);
+                    Sb_temp = y_accumulated(i) * sin((j) * 2 * T * (i - 1 - number_of_points / 2) / number_of_points);
+                    Sa(j) = Sa(j) + Sa_temp;
+                    Sb(j) = Sb(j) + Sb_temp;
                 end
-            
             end
+
+            % Для расчётного задания №1
+            app.LogsTextArea.Value = "n = " + K + "; " + "A0 = " + Sa0 + "; " + "An = " + Sa(K) + "; " + "Bn = " + Sb(K) + "; ";
+
             for j = 1:K
                 Sa(j) = Sa(j) * 2 / number_of_points;
                 Sb(j) = Sb(j) * 2 / number_of_points;
@@ -209,7 +216,7 @@ classdef application < matlab.apps.AppBase
             y_fourier = zeros(1,number_of_points);
             for i = 1:number_of_points
                 for j = 1:K
-                    y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * pi * (i - 1 - number_of_points / 2) / number_of_points);
+                    y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * T * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * T * (i - 1 - number_of_points / 2) / number_of_points);
                 end
                   y_fourier(i) = Sa0 + y_fourier(i);
             end
@@ -344,7 +351,7 @@ classdef application < matlab.apps.AppBase
             ClearTable(app);
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function ClearTableButton_2Pushed(app, event)
             ClearTable(app);
         end
@@ -358,7 +365,7 @@ classdef application < matlab.apps.AppBase
 
             % Create ModelSignalGeneratorUIFigure and hide until all components are created
             app.ModelSignalGeneratorUIFigure = uifigure('Visible', 'off');
-            app.ModelSignalGeneratorUIFigure.Position = [100 100 1057 629];
+            app.ModelSignalGeneratorUIFigure.Position = [100 100 1299 629];
             app.ModelSignalGeneratorUIFigure.Name = 'Model Signal Generator';
 
             % Create UIAxesSignals
@@ -379,7 +386,7 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSKO.Box = 'on';
             app.UIAxesSKO.XGrid = 'on';
             app.UIAxesSKO.YGrid = 'on';
-            app.UIAxesSKO.Position = [625 28 425 248];
+            app.UIAxesSKO.Position = [625 28 420 248];
 
             % Create GenerateButton
             app.GenerateButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
@@ -569,6 +576,16 @@ classdef application < matlab.apps.AppBase
             app.FouriercomplexSKOLabel.FontColor = [1 0 1];
             app.FouriercomplexSKOLabel.Position = [844 279 128 22];
             app.FouriercomplexSKOLabel.Text = 'Fourier (complex) SKO';
+
+            % Create LogsTextAreaLabel
+            app.LogsTextAreaLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.LogsTextAreaLabel.HorizontalAlignment = 'right';
+            app.LogsTextAreaLabel.Position = [1156 542 31 22];
+            app.LogsTextAreaLabel.Text = 'Logs';
+
+            % Create LogsTextArea
+            app.LogsTextArea = uitextarea(app.ModelSignalGeneratorUIFigure);
+            app.LogsTextArea.Position = [1065 61 211 475];
 
             % Show the figure after all components are created
             app.ModelSignalGeneratorUIFigure.Visible = 'on';
