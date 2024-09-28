@@ -204,14 +204,14 @@ classdef application < matlab.apps.AppBase
                     Sb(j) = Sb(j) + Sb_temp;
                 end
             end
-
-            % Для расчётного задания №1
-            app.LogsTextArea.Value = "n = " + K + "; " + "A0 = " + Sa0 + "; " + "An = " + Sa(K) + "; " + "Bn = " + Sb(K) + "; ";
-
+            
             for j = 1:K
                 Sa(j) = Sa(j) * 2 / number_of_points;
                 Sb(j) = Sb(j) * 2 / number_of_points;
             end
+
+            % Для расчётного задания №1
+            app.LogsTextArea.Value = "n = " + K + "; " + "A0 = " + Sa0 * 2 + "; " + "An = " + Sa(K) + "; " + "Bn = " + Sb(K) + "; ";
 
             y_fourier = zeros(1,number_of_points);
             for i = 1:number_of_points
