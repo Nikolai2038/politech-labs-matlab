@@ -241,8 +241,8 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             Sa0 = sum(y_accumulated) / number_of_points;
 
-            Sa = zeros(1,K);
-            Sb = zeros(1,K);
+            Sa = zeros(1, K);
+            Sb = zeros(1, K);
             for i = 1:number_of_points
                 for j = 1:K
                     Sa_temp = y_accumulated(i) * cos((j) * 2 * T * (i - 1 - number_of_points / 2) / number_of_points);
@@ -260,7 +260,7 @@ classdef application < matlab.apps.AppBase
             % Для расчётного задания №1
             app.LogsTextArea_2.Value = "n = " + K + "; " + "A0 = " + Sa0 * 2 + "; " + "An = " + Sa(K) + "; " + "Bn = " + Sb(K) + "; ";
 
-            y_fourier = zeros(1,number_of_points);
+            y_fourier = zeros(1, number_of_points);
             for i = 1:number_of_points
                 for j = 1:K
                     y_fourier(i) = y_fourier(i) + Sa(j) * cos(j * 2 * T * (i - 1 - number_of_points / 2) / number_of_points) + Sb(j) * sin(j * 2 * T * (i - 1 - number_of_points / 2) / number_of_points);
@@ -281,7 +281,7 @@ classdef application < matlab.apps.AppBase
             % Действительный ряд Фурье: Находим СКО
             % ----------------------------------------
             % Абсолютная погрешность восстановления  
-            y_fourier_deviation = zeros(1,number_of_points);
+            y_fourier_deviation = zeros(1, number_of_points);
             for i = 1:number_of_points
                 y_fourier_deviation(i) = y_fourier(i) - y_accumulated(i);
             end
@@ -295,7 +295,7 @@ classdef application < matlab.apps.AppBase
             % Комплексный ряд Фурье: Высчитываем
             % ----------------------------------------
             C0 = sum(y_accumulated) * 2 / number_of_points;
-            C = zeros(1,K);
+            C = zeros(1, K);
             for i = 1:number_of_points
                 for k = 1:K
                     C(k) = C(k) + y_accumulated(i) * exp(-1j * 2 * pi * k * (i - 1) / number_of_points);
@@ -305,7 +305,7 @@ classdef application < matlab.apps.AppBase
                 C(k) = C(k) * (2 / number_of_points);
             end
 
-            y_fourier_complex = zeros(1,number_of_points);
+            y_fourier_complex = zeros(1, number_of_points);
             for i = 1:number_of_points
                 for k = 1:K
                     y_fourier_complex(i) = y_fourier_complex(i) + C(k) * exp(1j * 2 * pi * k * (i - 1) / number_of_points);
@@ -326,7 +326,7 @@ classdef application < matlab.apps.AppBase
             % Комплексный ряд Фурье: Находим СКО
             % ----------------------------------------
             % Абсолютная погрешность восстановления  
-            y_fourier_complex_deviation = zeros(1,number_of_points);
+            y_fourier_complex_deviation = zeros(1, number_of_points);
             for i = 1:number_of_points
               y_fourier_complex_deviation(i) = real(y_fourier_complex(i)) - y_accumulated(i);
             end
@@ -358,71 +358,53 @@ classdef application < matlab.apps.AppBase
             % Лабораторная работа 3
             % ========================================
             N = number_of_points;
-            kp1 = periods_number;
             Q = noise_sko;
-            A = signal_amplitude;
             s = y_accumulated_without_noise;
             q = noise;
             x = y_accumulated;
 
-            %%% Y=fft(x,N)/N; %БПФ  сигнала с шумом
-            %%%SS1=Y.*conj(Y)/N; %спектр мощности
-            %%%i=1:200;
-            %%%figure
-            %plot(i,SS1(1:200)); 
-            %%%semilogy(i,SS1(1:200)); %вывод спектра мощности сигнала с шумом
-            %%%title('Частотный спектр сигнала с шумом');
-
-            Y=fft(s,N)/N; %БПФ сигнала без шума
-            SS1=Y.*conj(Y)/N; %спектр мощности сигнала без шума
+            % ----------------------------------------
+            % Фильтр Колмогорова-Винера
+            % ----------------------------------------
+            % БПФ сигнала без шума
+            Y = fft(s, N) / N; 
+            % Спектр мощности сигнала без шума
+            SS1 = Y .* conj(Y) / N; 
             
-            Y1=fft(q,N)/N; %БПФ  шума
-            SS2=Y1.*conj(Y1)/N; %спектр мощности  шума
+            % БПФ  шума
+            Y1 = fft(q, N) / N; 
+            % Спектр мощности  шума
+            SS2 = Y1 .* conj(Y1) / N; 
 
-            for i=1:N    
-                H(i)=SS1(i)/(SS1(i)+SS2(i));%частотная характеристика оптимального фильтра
+            % Частотная характеристика оптимального фильтра
+            H = zeros(1, N);
+            for i = 1:N    
+                H(i) = SS1(i) / (SS1(i) + SS2(i));
             end
-            %%%i=1:200;
-            %%%figure
-            %plot(i,abs(H(1:200)));
-            %%%semilogx(i,abs(H(1:200)));
-            %hold on
-            %%%title('Частотная характеристика оптимального фильтра');
-
-            i=1:N;
-            XX1=fft(x,N); %частотный спектр сигнала с шумом
-            Z=ifft(XX1.*H);%свертка зашумленного сигнала с частотной хар-кой фильтра
-            %%%axis tight;
             
-            %%%figure
-            %%%plot(i,s(1:N)); %вывод незашумленного сигнала до фильтра сигнала
-            %%%title('Незашумленный сигнал до фильтра');
-            %%%axis tight;    
+            % Частотный спектр сигнала с шумом
+            XX1 = fft(x, N); 
             
-            %%%figure
-            %%%plot(i,Z(1:N)); %вывод отфильтрованного сигнала
-            %%%title('Сигнал после свертки с част. хар-кой опт. фильтра');
-            %%%axis tight;       
+            % Свертка зашумленного сигнала с частотной хар-кой фильтра 
+            Z = ifft(XX1 .* H);
 
+            % Вычисляем СКО
+            i = 1:N;
+            DZ(i) = Z(i) - s(i);
+            DZ1 = DZ * 100 / (max(s) - min(s));
+            SKO_KolVin = std(DZ1);
 
-            % ----------------------------------------
             % Сигнал после свертки с част. хар-кой опт. фильтра: Рисуем график в той же фигуре
-            % ----------------------------------------
             hold(app.UIAxesSignals_3, 'on');
             plot(app.UIAxesSignals_3, i, Z(1:N), 'b');
             hold(app.UIAxesSignals_3, 'off');
             % ----------------------------------------
 
-            i=1:N;
-            DZ(i)=Z(i)-s(i);
-            DZ1=DZ*100/(max(s)-min(s));
-            SKO_total=std(DZ1);
-
             % ----------------------------------------
             % Обновляем график зависимости погрешности от K
             % ----------------------------------------
             % Add new row to the table
-            app.FiltersData = [app.FiltersData; Q SKO_total SKO_total];
+            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_KolVin];
 
             % Sort values to make sure they are ascending
             app.FiltersData = sortrows(app.FiltersData);
@@ -434,13 +416,6 @@ classdef application < matlab.apps.AppBase
             % Redraw table chart
             app.UpdateTableChartFilters();
             % ----------------------------------------
-            
-            %%%i=1:N;
-            %%%figure
-            %%%plot(i,DZ1(1:N)); %вывод  погрешности отфильтрованного сигнала
-            %%%title('Погрешность отфильтрованного сигнала');
-            %%%ylabel('Полная погрешность, %'); % подпись по оси Y
-            %%%axis tight;
             % ========================================
         end
 
