@@ -407,7 +407,7 @@ classdef application < matlab.apps.AppBase
             app.PeriodsNumberkpEditField.ValueChangedFcn = createCallbackFcn(app, @PeriodsNumberkpEditFieldValueChanged, true);
             app.PeriodsNumberkpEditField.HorizontalAlignment = 'center';
             app.PeriodsNumberkpEditField.Position = [29 226 155 22];
-            app.PeriodsNumberkpEditField.Value = 4.5;
+            app.PeriodsNumberkpEditField.Value = 1;
 
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -476,7 +476,7 @@ classdef application < matlab.apps.AppBase
             app.ModelSignalGeneratorLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ModelSignalGeneratorLabel.HorizontalAlignment = 'center';
             app.ModelSignalGeneratorLabel.FontSize = 24;
-            app.ModelSignalGeneratorLabel.Position = [2 587 1056 31];
+            app.ModelSignalGeneratorLabel.Position = [2 587 1274 31];
             app.ModelSignalGeneratorLabel.Text = 'Model Signal Generator';
 
             % Create SignalTypeDropDown
@@ -484,7 +484,7 @@ classdef application < matlab.apps.AppBase
             app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))'};
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
             app.SignalTypeDropDown.Position = [28 531 155 22];
-            app.SignalTypeDropDown.Value = 'Harmonic (Sinusoidal)';
+            app.SignalTypeDropDown.Value = 'f(x) = abs(sin(x))';
 
             % Create NumberOfAccumulationsLabel
             app.NumberOfAccumulationsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -514,14 +514,14 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditField.ValueDisplayFormat = '%.0f';
             app.TheNumberOfFourierSeriesTermsEditField.HorizontalAlignment = 'center';
             app.TheNumberOfFourierSeriesTermsEditField.Position = [73 87 66 22];
-            app.TheNumberOfFourierSeriesTermsEditField.Value = 128;
+            app.TheNumberOfFourierSeriesTermsEditField.Value = 1;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.HorizontalAlignment = 'right';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.WordWrap = 'on';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Position = [21 87 46 22];
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = '2 <=';
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = '1 <=';
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMax
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax = uilabel(app.ModelSignalGeneratorUIFigure);
