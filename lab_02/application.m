@@ -138,7 +138,7 @@ classdef application < matlab.apps.AppBase
             % Create Y array
             y_accumulated = zeros(1, number_of_points);
 
-            T = pi * periods_number;
+            T = pi;
  
             % ----------------------------------------
             % Изначальный сигнал: Высчитываем
@@ -158,7 +158,7 @@ classdef application < matlab.apps.AppBase
                 noise = noise * noise_sko;
 
                 for i = 1:number_of_points
-                    x_calculated = (2 * T * (((i - 1-number_of_points/2)) / number_of_points));
+                    x_calculated = (2 * T * periods_number * (((i - 1-number_of_points/2)) / number_of_points));
                     % Fill Y array by selected signal type
                     if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
                         y(i) = sin(x_calculated);

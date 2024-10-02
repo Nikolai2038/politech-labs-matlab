@@ -138,7 +138,7 @@ classdef application < matlab.apps.AppBase
             % Create Y array
             y_accumulated = zeros(1, number_of_points);
 
-            T = pi * periods_number;
+            T = pi;
  
             % ----------------------------------------
             % Изначальный сигнал: Высчитываем
@@ -158,7 +158,7 @@ classdef application < matlab.apps.AppBase
                 noise = noise * noise_sko;
 
                 for i = 1:number_of_points
-                    x_calculated = (2 * T * (((i - 1-number_of_points/2)) / number_of_points));
+                    x_calculated = (2 * T * periods_number * (((i - 1 - number_of_points / 2)) / number_of_points));
                     % Fill Y array by selected signal type
                     if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
                         y(i) = sin(x_calculated);
@@ -170,6 +170,8 @@ classdef application < matlab.apps.AppBase
                         y(i) = square(x_calculated);
                     elseif (app.SignalTypeDropDown.Value == "f(x) = abs(sin(x))")
                         y(i) = abs(sin(x_calculated));
+                    elseif (app.SignalTypeDropDown.Value == "Bell-shaped")
+                        y(i) = exp(-0.0003 * (x_calculated - 200) ^ 2.0);
                     end
                     y(i) = y(i) * signal_aplitude;
                     y(i) = y(i) + noise(i);
@@ -481,7 +483,7 @@ classdef application < matlab.apps.AppBase
 
             % Create SignalTypeDropDown
             app.SignalTypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
-            app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))'};
+            app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))', 'Bell-shaped'};
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
             app.SignalTypeDropDown.Position = [28 531 155 22];
             app.SignalTypeDropDown.Value = 'f(x) = abs(sin(x))';
