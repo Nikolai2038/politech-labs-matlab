@@ -34,17 +34,22 @@ classdef application < matlab.apps.AppBase
         KolmogorovWienerTab             matlab.ui.container.Tab
         UIAxesSignals_3_KolmogorovWiener  matlab.ui.control.UIAxes
         MedianTab                       matlab.ui.container.Tab
-        BestsmoothingwindowfoundW1Label  matlab.ui.control.Label
+        BestsmoothingwindowfoundWLabel  matlab.ui.control.Label
         UIAxesSignals_3_Median          matlab.ui.control.UIAxes
         MovingAverageTab                matlab.ui.container.Tab
+        SmoothingwindowW9Label          matlab.ui.control.Label
         UIAxesSignals_3_MovingAverage   matlab.ui.control.UIAxes
-        BetterworthTab                  matlab.ui.container.Tab
-        UIAxesSignals_3_Betterworth     matlab.ui.control.UIAxes
+        ButterworthTab                  matlab.ui.container.Tab
+        BandwidthNC15Label              matlab.ui.control.Label
+        UIAxesSignals_3_Butterworth     matlab.ui.control.UIAxes
         ChebyshevTab                    matlab.ui.container.Tab
+        BandwidthNC4Label               matlab.ui.control.Label
         UIAxesSignals_3_Chebyshev       matlab.ui.control.UIAxes
         ChebyshevInverseTab             matlab.ui.container.Tab
+        BandwidthNC16Label              matlab.ui.control.Label
         UIAxesSignals_3_ChebyshevInverse  matlab.ui.control.UIAxes
         LowPassTab                      matlab.ui.container.Tab
+        BandwidthNC64Label              matlab.ui.control.Label
         UIAxesSignals_3_LowPass         matlab.ui.control.UIAxes
         ClearTableButton_3              matlab.ui.control.Button
         UITableSKO_3                    matlab.ui.control.Table
@@ -406,15 +411,14 @@ classdef application < matlab.apps.AppBase
             DZ1 = DZ * 100 / (max(s) - min(s));
             SKO_KolVin = std(DZ1);
 
-            % Сигнал после свертки с част. хар-кой опт. фильтра: Рисуем график в той же фигуре
-            hold(app.UIAxesSignals_3_Signal, 'on');
-            plot(app.UIAxesSignals_3_Signal, i, Z(1:N), 'b');
-            hold(app.UIAxesSignals_3_Signal, 'off');
+            % Сигнал после применения фильтра
+            plot(app.UIAxesSignals_3_KolmogorovWiener, i, Z(1:N), 'b');
             % ----------------------------------------
 
             % ----------------------------------------
             % Медианный фильтр
             % ----------------------------------------
+            % TODO: Найти оптимальное W (только для этого фильтра)
             % Ширина окна сглаживания
             W = 9;
             
@@ -430,9 +434,6 @@ classdef application < matlab.apps.AppBase
 
               % Вычисление медианы в скользящем окне
               y(i - 1 + H) = median(z);
-
-              % Вычисление скользящего среднего
-              % y(i - 1 + H) = mean(z);
             end
             for i = H:N-H
                 % Уровень зашумления в сигнале после фильтра
@@ -443,43 +444,64 @@ classdef application < matlab.apps.AppBase
             SKO_Median = std(DZ);
 
             i = 1:N;
-            % Сигнал после свертки с част. хар-кой опт. фильтра: Рисуем график в той же фигуре
-            hold(app.UIAxesSignals_3_Signal, 'on');
-            plot(app.UIAxesSignals_3_Signal, i, y(i), 'm');
-            hold(app.UIAxesSignals_3_Signal, 'off');
-            % ----------------------------------------
+            % Сигнал после применения фильтра
+            plot(app.UIAxesSignals_3_Median, i, y(i), 'm');
 
-            % TODO:
-            % 1. Сделать вкладки для всех фильтров, но таблицу с СКО и график зависимости оставить вне вкладок;
-            % 2. Найти оптимальное W для моего варианта - медианный фильтр;
-            % 3. Для остальных фильтров - просто найти СКО и построить графики зависимости от Q.
+            app.BestsmoothingwindowfoundWLabel.Text = "Best smoothing window found: W = " + W;
+            % ----------------------------------------
 
             % ----------------------------------------
             % Фильтр скользящего среднего
             % ----------------------------------------
+            % Ширина окна сглаживания
+            W = 9;
+            
+            % Вычисление полуширины окна сглаживания
+            H = (W + 1) / 2;
+            
+            % Сглаживание зашумленного сигнала
+            for i = 1:N-W 
+                z = zeros(1, W);
+                for j = 1:W
+                    z(j) = x(j + i - 1);
+                end
+
+              % Вычисление скользящего среднего
+              y(i - 1 + H) = mean(z);
+            end
+            for i = H:N-H
+                % Уровень зашумления в сигнале после фильтра
+                DZ(i) = s(i) - y(i);
+            end
+            % Полная погрешность в процентах
+            DZ = DZ * 100 / (max(s) - min(s));
+            SKO_MovingAverage = std(DZ);
+
+            i = 1:N;
+            % Сигнал после применения фильтра
+            plot(app.UIAxesSignals_3_MovingAverage, i, y(i), 'm');
+            % ----------------------------------------
+
+            % ----------------------------------------
+            % TODO: Фильтр Беттерворта
+            % ----------------------------------------
             % ...
             % ----------------------------------------
 
             % ----------------------------------------
-            % Фильтр Беттерворта
+            % TODO: Фильтр Чебышева
             % ----------------------------------------
             % ...
             % ----------------------------------------
 
             % ----------------------------------------
-            % Фильтр Чебышева
+            % TODO: Инверсный фильтр Чебышева
             % ----------------------------------------
             % ...
             % ----------------------------------------
 
             % ----------------------------------------
-            % Инверсный фильтр Чебышева
-            % ----------------------------------------
-            % ...
-            % ----------------------------------------
-
-            % ----------------------------------------
-            % Низкочастотный фильтр 1-го порядка
+            % TODO: Низкочастотный фильтр 1-го порядка
             % ----------------------------------------
             % ...
             % ----------------------------------------
@@ -487,6 +509,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Обновляем график зависимости погрешности от K
             % ----------------------------------------
+            % TODO: Добавить все СКО в таблицу и отобразить все графики
             % Add new row to the table
             app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median];
 
@@ -890,12 +913,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Median.YGrid = 'on';
             app.UIAxesSignals_3_Median.Position = [8 8 947 279];
 
-            % Create BestsmoothingwindowfoundW1Label
-            app.BestsmoothingwindowfoundW1Label = uilabel(app.MedianTab);
-            app.BestsmoothingwindowfoundW1Label.HorizontalAlignment = 'right';
-            app.BestsmoothingwindowfoundW1Label.VerticalAlignment = 'bottom';
-            app.BestsmoothingwindowfoundW1Label.Position = [638 4 308 22];
-            app.BestsmoothingwindowfoundW1Label.Text = 'Best smoothing window found: W = 1';
+            % Create BestsmoothingwindowfoundWLabel
+            app.BestsmoothingwindowfoundWLabel = uilabel(app.MedianTab);
+            app.BestsmoothingwindowfoundWLabel.HorizontalAlignment = 'right';
+            app.BestsmoothingwindowfoundWLabel.VerticalAlignment = 'bottom';
+            app.BestsmoothingwindowfoundWLabel.Position = [638 4 301 22];
+            app.BestsmoothingwindowfoundWLabel.Text = 'Best smoothing window found: W = ?';
 
             % Create MovingAverageTab
             app.MovingAverageTab = uitab(app.TabGroup2);
@@ -911,19 +934,33 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_MovingAverage.YGrid = 'on';
             app.UIAxesSignals_3_MovingAverage.Position = [8 8 947 279];
 
-            % Create BetterworthTab
-            app.BetterworthTab = uitab(app.TabGroup2);
-            app.BetterworthTab.Title = 'Betterworth';
+            % Create SmoothingwindowW9Label
+            app.SmoothingwindowW9Label = uilabel(app.MovingAverageTab);
+            app.SmoothingwindowW9Label.HorizontalAlignment = 'right';
+            app.SmoothingwindowW9Label.VerticalAlignment = 'bottom';
+            app.SmoothingwindowW9Label.Position = [638 4 301 22];
+            app.SmoothingwindowW9Label.Text = 'Smoothing window: W = 9';
 
-            % Create UIAxesSignals_3_Betterworth
-            app.UIAxesSignals_3_Betterworth = uiaxes(app.BetterworthTab);
-            xlabel(app.UIAxesSignals_3_Betterworth, 'N')
-            ylabel(app.UIAxesSignals_3_Betterworth, 'S')
-            zlabel(app.UIAxesSignals_3_Betterworth, 'Z')
-            app.UIAxesSignals_3_Betterworth.Box = 'on';
-            app.UIAxesSignals_3_Betterworth.XGrid = 'on';
-            app.UIAxesSignals_3_Betterworth.YGrid = 'on';
-            app.UIAxesSignals_3_Betterworth.Position = [8 8 947 279];
+            % Create ButterworthTab
+            app.ButterworthTab = uitab(app.TabGroup2);
+            app.ButterworthTab.Title = 'Butterworth';
+
+            % Create UIAxesSignals_3_Butterworth
+            app.UIAxesSignals_3_Butterworth = uiaxes(app.ButterworthTab);
+            xlabel(app.UIAxesSignals_3_Butterworth, 'N')
+            ylabel(app.UIAxesSignals_3_Butterworth, 'S')
+            zlabel(app.UIAxesSignals_3_Butterworth, 'Z')
+            app.UIAxesSignals_3_Butterworth.Box = 'on';
+            app.UIAxesSignals_3_Butterworth.XGrid = 'on';
+            app.UIAxesSignals_3_Butterworth.YGrid = 'on';
+            app.UIAxesSignals_3_Butterworth.Position = [8 8 947 279];
+
+            % Create BandwidthNC15Label
+            app.BandwidthNC15Label = uilabel(app.ButterworthTab);
+            app.BandwidthNC15Label.HorizontalAlignment = 'right';
+            app.BandwidthNC15Label.VerticalAlignment = 'bottom';
+            app.BandwidthNC15Label.Position = [638 4 301 22];
+            app.BandwidthNC15Label.Text = 'Bandwidth: NC = 15';
 
             % Create ChebyshevTab
             app.ChebyshevTab = uitab(app.TabGroup2);
@@ -939,6 +976,13 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Chebyshev.YGrid = 'on';
             app.UIAxesSignals_3_Chebyshev.Position = [8 8 947 279];
 
+            % Create BandwidthNC4Label
+            app.BandwidthNC4Label = uilabel(app.ChebyshevTab);
+            app.BandwidthNC4Label.HorizontalAlignment = 'right';
+            app.BandwidthNC4Label.VerticalAlignment = 'bottom';
+            app.BandwidthNC4Label.Position = [638 4 301 22];
+            app.BandwidthNC4Label.Text = 'Bandwidth: NC = 4';
+
             % Create ChebyshevInverseTab
             app.ChebyshevInverseTab = uitab(app.TabGroup2);
             app.ChebyshevInverseTab.Title = 'Chebyshev Inverse';
@@ -953,6 +997,13 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_ChebyshevInverse.YGrid = 'on';
             app.UIAxesSignals_3_ChebyshevInverse.Position = [8 8 947 279];
 
+            % Create BandwidthNC16Label
+            app.BandwidthNC16Label = uilabel(app.ChebyshevInverseTab);
+            app.BandwidthNC16Label.HorizontalAlignment = 'right';
+            app.BandwidthNC16Label.VerticalAlignment = 'bottom';
+            app.BandwidthNC16Label.Position = [638 4 301 22];
+            app.BandwidthNC16Label.Text = 'Bandwidth: NC = 16';
+
             % Create LowPassTab
             app.LowPassTab = uitab(app.TabGroup2);
             app.LowPassTab.Title = 'Low-Pass';
@@ -966,6 +1017,13 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_LowPass.XGrid = 'on';
             app.UIAxesSignals_3_LowPass.YGrid = 'on';
             app.UIAxesSignals_3_LowPass.Position = [8 8 947 279];
+
+            % Create BandwidthNC64Label
+            app.BandwidthNC64Label = uilabel(app.LowPassTab);
+            app.BandwidthNC64Label.HorizontalAlignment = 'right';
+            app.BandwidthNC64Label.VerticalAlignment = 'bottom';
+            app.BandwidthNC64Label.Position = [638 4 301 22];
+            app.BandwidthNC64Label.Text = 'Bandwidth: NC = 64';
 
             % Create SmoothingwindowwidthEditFieldLabel
             app.SmoothingwindowwidthEditFieldLabel = uilabel(app.ModelSignalGeneratorUIFigure);
