@@ -57,40 +57,41 @@ classdef application < matlab.apps.AppBase
     
     properties (Access = private)
         FourierData
+        FiltersData
     end
     
     methods (Access = private)
-        function UpdateTableChart(app)
-            if (isempty(app.FourierData))
+        function UpdateTableChart(~, table, data, axes)
+            if (isempty(data))
                 % Empty the data
-                app.UITableSKO_2.Data = [];
+                table.Data = [];
 
                 % Clear chart
-                cla(app.UIAxesSKO_2);
+                cla(axes);
             % For interpolation, we need at least 2 different points
             else
                 % Load data from variable
-                app.UITableSKO_2.Data = array2table(app.FourierData,'VariableNames',{'K','SKO','SKO_Complex'});
+                table.Data = array2table(data, 'VariableNames',{'c01','c02','c03'});
                 
-                if (size(app.FourierData, 1) >= 2)
-                    x = app.UITableSKO_2.Data.K;
-                    y_simple = app.UITableSKO_2.Data.SKO;
-                    y_complex = app.UITableSKO_2.Data.SKO_Complex;
+                if (size(data, 1) >= 2)
+                    x = table.Data.c01;
+                    y_1 = table.Data.c02;
+                    y_2 = table.Data.c03;
     
                     % Create 100 more points for interpolation
                     x_interpolated = linspace(min(x), max(x), 100);
                     
                     % Apply interpolation
-                    y_simple_interpolated = interp1(x, y_simple, x_interpolated, 'pchip');
+                    y_1_interpolated = interp1(x, y_1, x_interpolated, 'pchip');
                     % Draw chart 1 with soft line and points
-                    plot(app.UIAxesSKO_2, x_interpolated, y_simple_interpolated, 'b-', x, y_simple, 'bo');
+                    plot(axes, x_interpolated, y_1_interpolated, 'b-', x, y_1, 'bo');
                     
                     % Apply interpolation
-                    y_complex_interpolated = interp1(x, y_complex, x_interpolated, 'pchip');
+                    y_2_interpolated = interp1(x, y_2, x_interpolated, 'pchip');
                     % Draw chart 2 with soft line and points
-                    hold(app.UIAxesSKO_2, 'on');
-                    plot(app.UIAxesSKO_2, x_interpolated, y_complex_interpolated, 'm-', x, y_complex, 'mo');
-                    hold(app.UIAxesSKO_2, 'off');
+                    hold(axes, 'on');
+                    plot(axes, x_interpolated, y_2_interpolated, 'm-', x, y_2, 'mo');
+                    hold(axes, 'off');
                 end
             end
         end
@@ -109,9 +110,22 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsNumberkpEditField.Value, app.NumberOfPointsNEditField.Value / 4];
         end
         
-        function ClearTable(app)
+        function UpdateTableChartFourier(app)
+            app.UpdateTableChart(app.UITableSKO_2, app.FourierData, app.UIAxesSKO_2);
+        end
+        
+        function UpdateTableChartFilters(app)
+            app.UpdateTableChart(app.UITableSKO_3, app.FiltersData, app.UIAxesSKO_3);
+        end
+        
+        function ClearTableFourier(app)
             app.FourierData = [];
-            app.UpdateTableChart();
+            app.UpdateTableChartFourier();
+        end
+        
+        function ClearTableFilters(app)
+            app.FiltersData = [];
+            app.UpdateTableChartFilters();
         end
     end
     
@@ -164,6 +178,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Изначальный сигнал: Высчитываем
             % ----------------------------------------
+            noise = zeros(1, number_of_points);
             for iteration = 1:number_of_accumulations
                 % Create Y array
                 y = zeros(1, number_of_points);
@@ -180,7 +195,7 @@ classdef application < matlab.apps.AppBase
                 noise = noise * noise_sko;
 
                 for i = 1:number_of_points
-                    x_calculated = (2 * T * periods_number * (((i - 1 - number_of_points / 2)) / number_of_points));
+                    x_calculated = (2 * T * periods_number * (i / number_of_points));
                     % Fill Y array by selected signal type
                     if (app.SignalTypeDropDown.Value == "Harmonic (Sinusoidal)")
                         y(i) = sin(x_calculated);
@@ -335,7 +350,7 @@ classdef application < matlab.apps.AppBase
             app.FourierData = app.FourierData(ia,:);
 
             % Redraw table chart
-            app.UpdateTableChart();
+            app.UpdateTableChartFourier();
             % ----------------------------------------
             % ========================================
 
@@ -401,7 +416,24 @@ classdef application < matlab.apps.AppBase
             i=1:N;
             DZ(i)=Z(i)-s(i);
             DZ1=DZ*100/(max(s)-min(s));
-            SKO_total=std(DZ1)
+            SKO_total=std(DZ1);
+
+            % ----------------------------------------
+            % Обновляем график зависимости погрешности от K
+            % ----------------------------------------
+            % Add new row to the table
+            app.FiltersData = [app.FiltersData; Q SKO_total SKO_total];
+
+            % Sort values to make sure they are ascending
+            app.FiltersData = sortrows(app.FiltersData);
+
+            % Filter rows with same first column (K)
+            [~,ia,~] = unique(app.FiltersData(:,1), 'rows');
+            app.FiltersData = app.FiltersData(ia,:);
+
+            % Redraw table chart
+            app.UpdateTableChartFilters();
+            % ----------------------------------------
             
             %%%i=1:N;
             %%%figure
@@ -421,44 +453,55 @@ classdef application < matlab.apps.AppBase
                 app.NoiseSKOLabel.Enable = "on";
                 app.NoiseSKOEditField.Enable = "on";
             end
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Value changed function: NumberOfPointsNEditField
         function NumberOfPointsNEditFieldValueChanged(app, event)
             app.UpdateMaxLimit();
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Value changed function: PeriodsNumberkpEditField
         function PeriodsNumberkpEditFieldValueChanged(app, event)
             app.UpdateMinLimit();
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Button pushed function: ClearTableButton_2
         function ClearTableButton_2Pushed2(app, event)
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Value changed function: NoiseSKOEditField
         function NoiseSKOEditFieldValueChanged(app, event)
-            ClearTable(app);
+            app.ClearTableFourier();
         end
 
         % Value changed function: SignalTypeDropDown
         function SignalTypeDropDownValueChanged(app, event)
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Value changed function: NumberOfAccumulationsEditField
         function NumberOfAccumulationsEditFieldValueChanged(app, event)
-            ClearTable(app);
+            app.ClearTableFourier();
+            app.ClearTableFilters();
         end
 
         % Callback function
         function ClearTableButton_2Pushed(app, event)
-            ClearTable(app);
+            app.ClearTableFourier();
+        end
+
+        % Button pushed function: ClearTableButton_3
+        function ClearTableButton_3Pushed(app, event)
+            app.ClearTableFilters();
         end
     end
 
@@ -492,12 +535,11 @@ classdef application < matlab.apps.AppBase
             app.PeriodsNumberkpEditField.ValueChangedFcn = createCallbackFcn(app, @PeriodsNumberkpEditFieldValueChanged, true);
             app.PeriodsNumberkpEditField.HorizontalAlignment = 'center';
             app.PeriodsNumberkpEditField.Position = [29 266 155 22];
-            app.PeriodsNumberkpEditField.Value = 1;
+            app.PeriodsNumberkpEditField.Value = 5;
 
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseSKOLabel.HorizontalAlignment = 'right';
-            app.NoiseSKOLabel.Enable = 'off';
             app.NoiseSKOLabel.Position = [69 350 68 22];
             app.NoiseSKOLabel.Text = 'Noise SKO:';
 
@@ -506,7 +548,6 @@ classdef application < matlab.apps.AppBase
             app.NoiseSKOEditField.ValueDisplayFormat = '%9.1f';
             app.NoiseSKOEditField.ValueChangedFcn = createCallbackFcn(app, @NoiseSKOEditFieldValueChanged, true);
             app.NoiseSKOEditField.HorizontalAlignment = 'center';
-            app.NoiseSKOEditField.Enable = 'off';
             app.NoiseSKOEditField.Position = [29 329 155 22];
             app.NoiseSKOEditField.Value = 0.1;
 
@@ -534,7 +575,7 @@ classdef application < matlab.apps.AppBase
             app.NoiseTypeDropDown.Items = {'None', 'Normally Distributed', 'White Gaussian Noise'};
             app.NoiseTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @NoiseTypeDropDownValueChanged, true);
             app.NoiseTypeDropDown.Position = [29 387 155 22];
-            app.NoiseTypeDropDown.Value = 'None';
+            app.NoiseTypeDropDown.Value = 'Normally Distributed';
 
             % Create NumberOfPointsLabel
             app.NumberOfPointsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -569,7 +610,7 @@ classdef application < matlab.apps.AppBase
             app.SignalTypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))', 'Bell-shaped'};
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
             app.SignalTypeDropDown.Position = [28 571 155 22];
-            app.SignalTypeDropDown.Value = 'f(x) = abs(sin(x))';
+            app.SignalTypeDropDown.Value = 'Harmonic (Sinusoidal)';
 
             % Create NumberOfAccumulationsLabel
             app.NumberOfAccumulationsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -768,12 +809,13 @@ classdef application < matlab.apps.AppBase
 
             % Create UITableSKO_3
             app.UITableSKO_3 = uitable(app.Lab3FiltersTab);
-            app.UITableSKO_3.ColumnName = {'K'; 'SKO'; 'SKO_Complex'};
+            app.UITableSKO_3.ColumnName = {'Q'; 'SKO_KolVin'; 'SKO_Median'};
             app.UITableSKO_3.RowName = {};
             app.UITableSKO_3.Position = [468 329 376 201];
 
             % Create ClearTableButton_3
             app.ClearTableButton_3 = uibutton(app.Lab3FiltersTab, 'push');
+            app.ClearTableButton_3.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButton_3Pushed, true);
             app.ClearTableButton_3.BackgroundColor = [1 0.9059 0.6784];
             app.ClearTableButton_3.Position = [468 309 376 23];
             app.ClearTableButton_3.Text = 'Clear table';
