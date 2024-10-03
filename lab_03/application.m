@@ -78,12 +78,54 @@ classdef application < matlab.apps.AppBase
 
     
     properties (Access = private)
-        FourierData
-        FiltersData
+        FourierData;
+        FiltersData;
+
+        FilterGraphicColorSignal = 'r-';
+        FilterGraphicColorDotsSignal = 'ro';
+
+        FilterGraphicColorKolmogorovWiener = 'b-';
+        FilterGraphicColorDotsKolmogorovWiener = 'bo';
+
+        FilterGraphicColorMedian = 'm-';
+        FilterGraphicColorDotsMedian = 'mo';
+
+        FilterGraphicColorMovingAverage = 'c-';
+        FilterGraphicColorDotsMovingAverage = 'co';
+
+        FilterGraphicColorButterworth = 'g-';
+        FilterGraphicColorDotsButterworth = 'go';
+
+        FilterGraphicColorChebyshev = 'k-';
+        FilterGraphicColorDotsChebyshev = 'ko';
+
+        FilterGraphicColorChebyshevInverse = 'b--';
+        FilterGraphicColorDotsChebyshevInverse = 'bo';
+
+        FilterGraphicColorLowPass = 'm--';
+        FilterGraphicColorDotsLowPass = 'mo';
     end
     
     methods (Access = private)
-        function UpdateTableChart(~, table, data, axes)
+        function UpdateMinLimit(app)
+            % Update text in label for minimum
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = app.PeriodsnumberkpEditField.Value + " <=";
+            % Update edit field minimum and maximum (do not include maximum in edit field properties)
+            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsnumberkpEditField.Value, app.NumberofpointsNEditField.Value / 4];
+        end
+        
+        function UpdateMaxLimit(app)
+            % Update text in label for maximum
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = "<= " + app.NumberofpointsNEditField.Value / 4;
+            % Update edit field minimum and maximum (do not include maximum in edit field properties)
+            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsnumberkpEditField.Value, app.NumberofpointsNEditField.Value / 4];
+        end
+        
+        function UpdateTableChartFourier(app)
+            table = app.UITableSKO_2;
+            data = app.FourierData;
+            axes = app.UIAxesSKO_2;
+
             if (isempty(data))
                 % Empty the data
                 table.Data = [];
@@ -118,26 +160,75 @@ classdef application < matlab.apps.AppBase
             end
         end
         
-        function UpdateMinLimit(app)
-            % Update text in label for minimum
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = app.PeriodsnumberkpEditField.Value + " <=";
-            % Update edit field minimum and maximum (do not include maximum in edit field properties)
-            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsnumberkpEditField.Value, app.NumberofpointsNEditField.Value / 4];
-        end
-        
-        function UpdateMaxLimit(app)
-            % Update text in label for maximum
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = "<= " + app.NumberofpointsNEditField.Value / 4;
-            % Update edit field minimum and maximum (do not include maximum in edit field properties)
-            app.TheNumberOfFourierSeriesTermsEditField.Limits = [app.PeriodsnumberkpEditField.Value, app.NumberofpointsNEditField.Value / 4];
-        end
-        
-        function UpdateTableChartFourier(app)
-            app.UpdateTableChart(app.UITableSKO_2, app.FourierData, app.UIAxesSKO_2);
-        end
-        
         function UpdateTableChartFilters(app)
-            app.UpdateTableChart(app.UITableSKO_3, app.FiltersData, app.UIAxesSKO_3);
+            table = app.UITableSKO_3;
+            data = app.FiltersData;
+            axes = app.UIAxesSKO_3;
+
+            if (isempty(data))
+                % Empty the data
+                table.Data = [];
+
+                % Clear chart
+                cla(axes);
+            % For interpolation, we need at least 2 different points
+            else
+                % Load data from variable
+                table.Data = array2table(data, 'VariableNames',{'c01','c02','c03','c04','c05','c06','c07','c08'});
+                
+                if (size(data, 1) >= 2)
+                    x = table.Data.c01;
+                    y_1 = table.Data.c02;
+                    y_2 = table.Data.c03;
+                    y_3 = table.Data.c04;
+                    y_4 = table.Data.c05;
+                    y_5 = table.Data.c06;
+                    y_6 = table.Data.c07;
+                    y_7 = table.Data.c08;
+    
+                    % Create 100 more points for interpolation
+                    x_interpolated = linspace(min(x), max(x), 100);
+
+                    % Apply interpolation
+                    y_1_interpolated = interp1(x, y_1, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_1_interpolated, app.FilterGraphicColorKolmogorovWiener, x, y_1, app.FilterGraphicColorDotsKolmogorovWiener);
+                    
+                    hold(axes, 'on');
+
+                    % Apply interpolation
+                    y_2_interpolated = interp1(x, y_2, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_2_interpolated, app.FilterGraphicColorMedian, x, y_2, app.FilterGraphicColorDotsMedian);
+
+                    % Apply interpolation
+                    y_3_interpolated = interp1(x, y_3, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_3_interpolated, app.FilterGraphicColorMovingAverage, x, y_3, app.FilterGraphicColorDotsMovingAverage);
+
+                    % Apply interpolation
+                    y_4_interpolated = interp1(x, y_4, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_4_interpolated, app.FilterGraphicColorButterworth, x, y_4, app.FilterGraphicColorDotsButterworth);
+
+                    % Apply interpolation
+                    y_5_interpolated = interp1(x, y_5, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_5_interpolated, app.FilterGraphicColorChebyshev, x, y_5, app.FilterGraphicColorDotsChebyshev);
+
+                    % Apply interpolation
+                    y_6_interpolated = interp1(x, y_6, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_6_interpolated, app.FilterGraphicColorChebyshevInverse, x, y_6, app.FilterGraphicColorDotsChebyshevInverse);
+
+                    % Apply interpolation
+                    y_7_interpolated = interp1(x, y_7, x_interpolated, 'pchip');
+                    % Draw chart with soft line and points
+                    plot(axes, x_interpolated, y_7_interpolated, app.FilterGraphicColorLowPass, x, y_7, app.FilterGraphicColorDotsLowPass);
+
+                    hold(axes, 'off');
+                end
+            end
         end
         
         function ClearTableFourier(app)
@@ -246,7 +337,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             plot(app.UIAxesSignals_1, x, y_accumulated, 'r');
             plot(app.UIAxesSignals_2, x, y_accumulated, 'r');
-            plot(app.UIAxesSignals_3_Signal, x, y_accumulated, 'r');
+            plot(app.UIAxesSignals_3_Signal, x, y_accumulated, app.FilterGraphicColorSignal);
             % ----------------------------------------
             % ========================================
 
@@ -413,7 +504,7 @@ classdef application < matlab.apps.AppBase
 
             % Вывод графика сигнала после применения фильтра
             i = 1:N;
-            plot(app.UIAxesSignals_3_KolmogorovWiener, i, Z(i), 'b');
+            plot(app.UIAxesSignals_3_KolmogorovWiener, i, Z(i), app.FilterGraphicColorKolmogorovWiener);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -437,6 +528,7 @@ classdef application < matlab.apps.AppBase
                   % Вычисление медианы в скользящем окне
                   y(i - 1 + H) = median(z);
                 end
+                DZ = zeros(1, N);
                 for i = H:N-H
                     % Уровень зашумления в сигнале после фильтра
                     DZ(i) = s(i) - y(i);
@@ -457,7 +549,7 @@ classdef application < matlab.apps.AppBase
 
             % Вывод графика сигнала после применения фильтра
             i = 1:N;
-            plot(app.UIAxesSignals_3_Median, i, y_optimal(i), 'm');
+            plot(app.UIAxesSignals_3_Median, i, y_optimal(i), app.FilterGraphicColorMedian);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -467,18 +559,19 @@ classdef application < matlab.apps.AppBase
             W = 9;
             
             % Вычисление полуширины окна сглаживания
-            H = (W + 1) / 2;
+            H = round((W + 1) / 2);
             
             % Сглаживание зашумленного сигнала
             for i = 1:N-W 
                 z = zeros(1, W);
                 for j = 1:W
                     z(j) = x(j + i - 1);
-                end
+                end  
 
-              % Вычисление скользящего среднего
-              y(i - 1 + H) = mean(z);
+              % Вычисление медианы в скользящем окне
+              y(i - 1 + H) = median(z);
             end
+            DZ = zeros(1, N);
             for i = H:N-H
                 % Уровень зашумления в сигнале после фильтра
                 DZ(i) = s(i) - y(i);
@@ -490,7 +583,7 @@ classdef application < matlab.apps.AppBase
 
             % Вывод графика сигнала после применения фильтра
             i = 1:N;
-            plot(app.UIAxesSignals_3_MovingAverage, i, y(i), 'c');
+            plot(app.UIAxesSignals_3_MovingAverage, i, y(i), app.FilterGraphicColorMovingAverage);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -519,7 +612,7 @@ classdef application < matlab.apps.AppBase
             SKO_Butterworth = std(DZ1);
 
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_Butterworth, i, 2 * real(Z(i)), 'g');
+            plot(app.UIAxesSignals_3_Butterworth, i, 2 * real(Z(i)), app.FilterGraphicColorButterworth);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -554,7 +647,7 @@ classdef application < matlab.apps.AppBase
             SKO_Chebyshev = std(DZ1);
             
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_Chebyshev, i, 2 * real(Z(i)), 'k');
+            plot(app.UIAxesSignals_3_Chebyshev, i, 2 * real(Z(i)), app.FilterGraphicColorChebyshev);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -589,7 +682,7 @@ classdef application < matlab.apps.AppBase
             SKO_ChebyshevInverse = std(DZ1);
                         
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z(i)), 'b');
+            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z(i)), app.FilterGraphicColorChebyshevInverse);
             % ----------------------------------------
 
             % ----------------------------------------
@@ -618,7 +711,7 @@ classdef application < matlab.apps.AppBase
             SKO_LowPass = std(DZ1);
 
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z(i)), 'm');
+            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z(i)), app.FilterGraphicColorLowPass);
             % ----------------------------------------
 
             % Устанавливаем вертикальные границы области графика - чтобы у всех графиков они были одинаковые
@@ -630,7 +723,7 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Chebyshev.YLimMode = "manual";
             app.UIAxesSignals_3_ChebyshevInverse.YLimMode = "manual";
             app.UIAxesSignals_3_LowPass.YLimMode = "manual";
-            y_limit = [-signal_amplitude * 1.3, signal_amplitude * 1.3];
+            y_limit = [-signal_amplitude * 1.5, signal_amplitude * 1.5];
             app.UIAxesSignals_3_Signal.YLim = y_limit;
             app.UIAxesSignals_3_KolmogorovWiener.YLim = y_limit;
             app.UIAxesSignals_3_Median.YLim = y_limit;
@@ -643,9 +736,8 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Обновляем график зависимости погрешности от K
             % ----------------------------------------
-            % TODO: Добавить все СКО в таблицу и отобразить все графики
             % Add new row to the table
-            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median_min];
+            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median_min SKO_MovingAverage SKO_Butterworth SKO_Chebyshev SKO_ChebyshevInverse SKO_LowPass];
 
             % Sort values to make sure they are ascending
             app.FiltersData = sortrows(app.FiltersData);
@@ -990,7 +1082,7 @@ classdef application < matlab.apps.AppBase
 
             % Create UITableSKO_3
             app.UITableSKO_3 = uitable(app.Lab3FiltersTab);
-            app.UITableSKO_3.ColumnName = {'Q'; 'SKO_KolVin'; 'SKO_Median'};
+            app.UITableSKO_3.ColumnName = {'Q'; 'KolVin'; 'Med'; 'MovAve'; 'But'; 'Che'; 'CheInv'; 'LowPas'};
             app.UITableSKO_3.RowName = {};
             app.UITableSKO_3.Position = [25 33 624 251];
 
