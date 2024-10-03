@@ -7,9 +7,9 @@ classdef application < matlab.apps.AppBase
         Lab1Label                       matlab.ui.control.Label
         Lab3Label                       matlab.ui.control.Label
         Lab2Label                       matlab.ui.control.Label
-        SmoothingwindowwidthEditField_2  matlab.ui.control.NumericEditField
+        SmoothingWindowMax              matlab.ui.control.NumericEditField
         TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2  matlab.ui.control.Label
-        SmoothingwindowwidthEditField   matlab.ui.control.NumericEditField
+        SmoothingWindowMin              matlab.ui.control.NumericEditField
         SmoothingwindowwidthEditFieldLabel  matlab.ui.control.Label
         TabGroup                        matlab.ui.container.TabGroup
         Lab1SignalTab                   matlab.ui.container.Tab
@@ -418,36 +418,44 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Медианный фильтр
             % ----------------------------------------
-            % TODO: Найти оптимальное W (только для этого фильтра)
-            % Ширина окна сглаживания
-            W = 9;
-            
-            % Вычисление полуширины окна сглаживания
-            H = (W + 1) / 2;
-            
-            % Сглаживание зашумленного сигнала
-            for i = 1:N-W 
-                z = zeros(1, W);
-                for j = 1:W
-                    z(j) = x(j + i - 1);
-                end  
+            SKO_Median_min = 999999;
+            W_optimal = app.SmoothingWindowMin.Value;
+            y_optimal = zeros(1, N);
+            % Ширина окна сглаживания - Находим наилучшую
+            for W = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value
+                % Вычисление полуширины окна сглаживания
+                H = round((W + 1) / 2);
+                
+                % Сглаживание зашумленного сигнала
+                for i = 1:N-W 
+                    z = zeros(1, W);
+                    for j = 1:W
+                        z(j) = x(j + i - 1);
+                    end  
+    
+                  % Вычисление медианы в скользящем окне
+                  y(i - 1 + H) = median(z);
+                end
+                for i = H:N-H
+                    % Уровень зашумления в сигнале после фильтра
+                    DZ(i) = s(i) - y(i);
+                end
+                % Полная погрешность в процентах
+                DZ = DZ * 100 / (max(s) - min(s));
+                SKO_Median = std(DZ);
 
-              % Вычисление медианы в скользящем окне
-              y(i - 1 + H) = median(z);
+                if (SKO_Median < SKO_Median_min)
+                    SKO_Median_min = SKO_Median;
+                    W_optimal = W;
+                    y_optimal = y;
+                end
             end
-            for i = H:N-H
-                % Уровень зашумления в сигнале после фильтра
-                DZ(i) = s(i) - y(i);
-            end
-            % Полная погрешность в процентах
-            DZ = DZ * 100 / (max(s) - min(s));
-            SKO_Median = std(DZ);
+
+            app.BestsmoothingwindowfoundWLabel.Text = "Best smoothing window found: W = " + W_optimal;
 
             i = 1:N;
             % Сигнал после применения фильтра
-            plot(app.UIAxesSignals_3_Median, i, y(i), 'm');
-
-            app.BestsmoothingwindowfoundWLabel.Text = "Best smoothing window found: W = " + W;
+            plot(app.UIAxesSignals_3_Median, i, y_optimal(i), 'm');
             % ----------------------------------------
 
             % ----------------------------------------
@@ -511,7 +519,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % TODO: Добавить все СКО в таблицу и отобразить все графики
             % Add new row to the table
-            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median];
+            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median_min];
 
             % Sort values to make sure they are ascending
             app.FiltersData = sortrows(app.FiltersData);
@@ -1031,14 +1039,14 @@ classdef application < matlab.apps.AppBase
             app.SmoothingwindowwidthEditFieldLabel.Position = [27 97 140 22];
             app.SmoothingwindowwidthEditFieldLabel.Text = 'Smoothing window width:';
 
-            % Create SmoothingwindowwidthEditField
-            app.SmoothingwindowwidthEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
-            app.SmoothingwindowwidthEditField.Limits = [1 Inf];
-            app.SmoothingwindowwidthEditField.RoundFractionalValues = 'on';
-            app.SmoothingwindowwidthEditField.ValueDisplayFormat = '%.0f';
-            app.SmoothingwindowwidthEditField.HorizontalAlignment = 'center';
-            app.SmoothingwindowwidthEditField.Position = [23 76 37 22];
-            app.SmoothingwindowwidthEditField.Value = 1;
+            % Create SmoothingWindowMin
+            app.SmoothingWindowMin = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
+            app.SmoothingWindowMin.Limits = [1 Inf];
+            app.SmoothingWindowMin.RoundFractionalValues = 'on';
+            app.SmoothingWindowMin.ValueDisplayFormat = '%.0f';
+            app.SmoothingWindowMin.HorizontalAlignment = 'center';
+            app.SmoothingWindowMin.Position = [23 76 37 22];
+            app.SmoothingWindowMin.Value = 5;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2 = uilabel(app.ModelSignalGeneratorUIFigure);
@@ -1047,14 +1055,14 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.Position = [61 76 69 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.Text = '<= W <=';
 
-            % Create SmoothingwindowwidthEditField_2
-            app.SmoothingwindowwidthEditField_2 = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
-            app.SmoothingwindowwidthEditField_2.Limits = [1 Inf];
-            app.SmoothingwindowwidthEditField_2.RoundFractionalValues = 'on';
-            app.SmoothingwindowwidthEditField_2.ValueDisplayFormat = '%.0f';
-            app.SmoothingwindowwidthEditField_2.HorizontalAlignment = 'center';
-            app.SmoothingwindowwidthEditField_2.Position = [131 76 40 22];
-            app.SmoothingwindowwidthEditField_2.Value = 30;
+            % Create SmoothingWindowMax
+            app.SmoothingWindowMax = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
+            app.SmoothingWindowMax.Limits = [1 Inf];
+            app.SmoothingWindowMax.RoundFractionalValues = 'on';
+            app.SmoothingWindowMax.ValueDisplayFormat = '%.0f';
+            app.SmoothingWindowMax.HorizontalAlignment = 'center';
+            app.SmoothingWindowMax.Position = [131 76 40 22];
+            app.SmoothingWindowMax.Value = 30;
 
             % Create Lab2Label
             app.Lab2Label = uilabel(app.ModelSignalGeneratorUIFigure);
