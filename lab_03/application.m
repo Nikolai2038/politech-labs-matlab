@@ -589,7 +589,7 @@ classdef application < matlab.apps.AppBase
             SKO_ChebyshevInverse = std(DZ1);
                         
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z(i)), 'b--');
+            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z(i)), 'b');
             % ----------------------------------------
 
             % ----------------------------------------
@@ -618,8 +618,27 @@ classdef application < matlab.apps.AppBase
             SKO_LowPass = std(DZ1);
 
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z(i)), 'm--');
+            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z(i)), 'm');
             % ----------------------------------------
+
+            % Устанавливаем вертикальные границы области графика - чтобы у всех графиков они были одинаковые
+            app.UIAxesSignals_3_Signal.YLimMode = "manual";
+            app.UIAxesSignals_3_KolmogorovWiener.YLimMode = "manual";
+            app.UIAxesSignals_3_Median.YLimMode = "manual";
+            app.UIAxesSignals_3_MovingAverage.YLimMode = "manual";
+            app.UIAxesSignals_3_Butterworth.YLimMode = "manual";
+            app.UIAxesSignals_3_Chebyshev.YLimMode = "manual";
+            app.UIAxesSignals_3_ChebyshevInverse.YLimMode = "manual";
+            app.UIAxesSignals_3_LowPass.YLimMode = "manual";
+            y_limit = [-signal_amplitude * 1.3, signal_amplitude * 1.3];
+            app.UIAxesSignals_3_Signal.YLim = y_limit;
+            app.UIAxesSignals_3_KolmogorovWiener.YLim = y_limit;
+            app.UIAxesSignals_3_Median.YLim = y_limit;
+            app.UIAxesSignals_3_MovingAverage.YLim = y_limit;
+            app.UIAxesSignals_3_Butterworth.YLim = y_limit;
+            app.UIAxesSignals_3_Chebyshev.YLim = y_limit;
+            app.UIAxesSignals_3_ChebyshevInverse.YLim = y_limit;
+            app.UIAxesSignals_3_LowPass.YLim = y_limit;
 
             % ----------------------------------------
             % Обновляем график зависимости погрешности от K
