@@ -4,13 +4,14 @@ classdef application < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         ModelSignalGeneratorUIFigure    matlab.ui.Figure
+        SmoothingwindowwidthBandwidthLabel  matlab.ui.control.Label
+        TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3  matlab.ui.control.Label
         Lab1Label                       matlab.ui.control.Label
         Lab3Label                       matlab.ui.control.Label
         Lab2Label                       matlab.ui.control.Label
         SmoothingWindowMax              matlab.ui.control.NumericEditField
         TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2  matlab.ui.control.Label
         SmoothingWindowMin              matlab.ui.control.NumericEditField
-        SmoothingwindowwidthEditFieldLabel  matlab.ui.control.Label
         TabGroup                        matlab.ui.container.TabGroup
         Lab1SignalTab                   matlab.ui.container.Tab
         SignalLabel_1                   matlab.ui.control.Label
@@ -28,30 +29,34 @@ classdef application < matlab.apps.AppBase
         UIAxesSKO_2                     matlab.ui.control.UIAxes
         UIAxesSignals_2                 matlab.ui.control.UIAxes
         Lab3FiltersTab                  matlab.ui.container.Tab
+        WorNCLabel                      matlab.ui.control.Label
+        ClearTableButton_WOrNC          matlab.ui.control.Button
+        SKOLabel                        matlab.ui.control.Label
+        UITableWOrNC                    matlab.ui.control.Table
         TabGroup2                       matlab.ui.container.TabGroup
         SignalTab                       matlab.ui.container.Tab
         UIAxesSignals_3_Signal          matlab.ui.control.UIAxes
         KolmogorovWienerTab             matlab.ui.container.Tab
         UIAxesSignals_3_KolmogorovWiener  matlab.ui.control.UIAxes
         MedianTab                       matlab.ui.container.Tab
-        BestsmoothingwindowfoundWLabel  matlab.ui.control.Label
+        BestSmoothingWindowFoundLabel_Median  matlab.ui.control.Label
         UIAxesSignals_3_Median          matlab.ui.control.UIAxes
         MovingAverageTab                matlab.ui.container.Tab
-        SmoothingwindowW9Label          matlab.ui.control.Label
+        BestSmoothingWindowFoundLabel_MovingAverage  matlab.ui.control.Label
         UIAxesSignals_3_MovingAverage   matlab.ui.control.UIAxes
         ButterworthTab                  matlab.ui.container.Tab
-        BandwidthNC15Label              matlab.ui.control.Label
+        BestBandwidthFoundLabel_Butterworth  matlab.ui.control.Label
         UIAxesSignals_3_Butterworth     matlab.ui.control.UIAxes
         ChebyshevTab                    matlab.ui.container.Tab
-        BandwidthNC4Label               matlab.ui.control.Label
+        BestBandwidthFoundLabel_Chebyshev  matlab.ui.control.Label
         UIAxesSignals_3_Chebyshev       matlab.ui.control.UIAxes
         ChebyshevInverseTab             matlab.ui.container.Tab
-        BandwidthNC16Label              matlab.ui.control.Label
+        BestBandwidthFoundLabel_ChebyshevInverse  matlab.ui.control.Label
         UIAxesSignals_3_ChebyshevInverse  matlab.ui.control.UIAxes
         LowPassTab                      matlab.ui.container.Tab
-        BandwidthNC64Label              matlab.ui.control.Label
+        BestBandwidthFoundLabel_LowPass  matlab.ui.control.Label
         UIAxesSignals_3_LowPass         matlab.ui.control.UIAxes
-        ClearTableButton_3              matlab.ui.control.Button
+        ClearTableButton_SKO            matlab.ui.control.Button
         UITableSKO_3                    matlab.ui.control.Table
         UIAxesSKO_3                     matlab.ui.control.UIAxes
         TheNumberOfFourierSeriesTermsEditFieldLabelKMax  matlab.ui.control.Label
@@ -80,6 +85,7 @@ classdef application < matlab.apps.AppBase
     properties (Access = private)
         FourierData;
         FiltersData;
+        FiltersDataWOrNC;
 
         FilterGraphicColorSignal = 'r-';
         FilterGraphicColorDotsSignal = 'ro';
@@ -132,11 +138,11 @@ classdef application < matlab.apps.AppBase
 
                 % Clear chart
                 cla(axes);
-            % For interpolation, we need at least 2 different points
             else
                 % Load data from variable
                 table.Data = array2table(data, 'VariableNames',{'c01','c02','c03'});
                 
+                % For interpolation, we need at least 2 different points
                 if (size(data, 1) >= 2)
                     x = table.Data.c01;
                     y_1 = table.Data.c02;
@@ -171,11 +177,11 @@ classdef application < matlab.apps.AppBase
 
                 % Clear chart
                 cla(axes);
-            % For interpolation, we need at least 2 different points
             else
                 % Load data from variable
                 table.Data = array2table(data, 'VariableNames',{'c01','c02','c03','c04','c05','c06','c07','c08'});
                 
+                % For interpolation, we need at least 2 different points
                 if (size(data, 1) >= 2)
                     x = table.Data.c01;
                     y_1 = table.Data.c02;
@@ -231,6 +237,19 @@ classdef application < matlab.apps.AppBase
             end
         end
         
+        function UpdateTableChartFiltersWOrNC(app)
+            table = app.UITableWOrNC;
+            data = app.FiltersDataWOrNC;
+
+            if (isempty(data))
+                % Empty the data
+                table.Data = [];
+            else
+                % Load data from variable
+                table.Data = array2table(data, 'VariableNames',{'c01','c02','c03','c04','c05','c06','c07'});
+            end
+        end
+        
         function ClearTableFourier(app)
             app.FourierData = [];
             app.UpdateTableChartFourier();
@@ -239,6 +258,11 @@ classdef application < matlab.apps.AppBase
         function ClearTableFilters(app)
             app.FiltersData = [];
             app.UpdateTableChartFilters();
+        end
+        
+        function ClearTableFiltersWOrNC(app)
+            app.FiltersDataWOrNC = [];
+            app.UpdateTableChartFiltersWOrNC();
         end
     end
     
@@ -510,7 +534,7 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Медианный фильтр
             % ----------------------------------------
-            SKO_Median_min = 999999;
+            SKO_min = 999999;
             W_optimal = app.SmoothingWindowMin.Value;
             y_optimal = zeros(1, N);
             % Ширина окна сглаживания - Находим наилучшую
@@ -536,16 +560,18 @@ classdef application < matlab.apps.AppBase
 
                 % Полная погрешность в процентах
                 DZ = DZ * 100 / (max(s) - min(s));
-                SKO_Median = std(DZ);
+                SKO = std(DZ);
 
-                if (SKO_Median < SKO_Median_min)
-                    SKO_Median_min = SKO_Median;
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
                     W_optimal = W;
                     y_optimal = y;
                 end
             end
+            SKO_Median = SKO_min;
+            W_Median = W_optimal;
 
-            app.BestsmoothingwindowfoundWLabel.Text = "Best smoothing window found: W = " + W_optimal;
+            app.BestSmoothingWindowFoundLabel_Median.Text = "Best smoothing window found: W = " + W_optimal;
 
             % Вывод графика сигнала после применения фильтра
             i = 1:N;
@@ -555,163 +581,232 @@ classdef application < matlab.apps.AppBase
             % ----------------------------------------
             % Фильтр скользящего среднего
             % ----------------------------------------
-            % Ширина окна сглаживания
-            W = 9;
-            
-            % Вычисление полуширины окна сглаживания
-            H = round((W + 1) / 2);
-            
-            % Сглаживание зашумленного сигнала
-            for i = 1:N-W 
-                z = zeros(1, W);
-                for j = 1:W
-                    z(j) = x(j + i - 1);
-                end  
+            SKO_min = 999999;
+            W_optimal = app.SmoothingWindowMin.Value;
+            y_optimal = zeros(1, N);
+            % Ширина окна сглаживания - Находим наилучшую
+            for W = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value
+                % Вычисление полуширины окна сглаживания
+                H = round((W + 1) / 2);
+                
+                % Сглаживание зашумленного сигнала
+                for i = 1:N-W 
+                    z = zeros(1, W);
+                    for j = 1:W
+                        z(j) = x(j + i - 1);
+                    end  
+    
+                  % Вычисление скользящего среднего
+                  y(i - 1 + H) = mean(z);
+                end
+                DZ = zeros(1, N);
+                for i = H:N-H
+                    % Уровень зашумления в сигнале после фильтра
+                    DZ(i) = s(i) - y(i);
+                end
+    
+                % Полная погрешность в процентах
+                DZ = DZ * 100 / (max(s) - min(s));
+                SKO = std(DZ);
 
-              % Вычисление медианы в скользящем окне
-              y(i - 1 + H) = median(z);
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
+                    W_optimal = W;
+                    y_optimal = y;
+                end
             end
-            DZ = zeros(1, N);
-            for i = H:N-H
-                % Уровень зашумления в сигнале после фильтра
-                DZ(i) = s(i) - y(i);
-            end
+            SKO_MovingAverage = SKO_min;
+            W_MovingAverage = W_optimal;
 
-            % Полная погрешность в процентах
-            DZ = DZ * 100 / (max(s) - min(s));
-            SKO_MovingAverage = std(DZ);
+            app.BestSmoothingWindowFoundLabel_MovingAverage.Text = "Best smoothing window found: W = " + W_optimal;
 
             % Вывод графика сигнала после применения фильтра
             i = 1:N;
-            plot(app.UIAxesSignals_3_MovingAverage, i, y(i), app.FilterGraphicColorMovingAverage);
+            plot(app.UIAxesSignals_3_MovingAverage, i, y_optimal(i), app.FilterGraphicColorMovingAverage);
             % ----------------------------------------
 
             % ----------------------------------------
             % Фильтр Беттерворта
             % ----------------------------------------
+            SKO_min = 999999;
+            NC_optimal = app.SmoothingWindowMin.Value;
+            Z_optimal = zeros(1, N);
             % NC - полоса пропускания фильтра по уровню 0,7 амплитуды.
             % Выражена в количестве отчетов спектра БПФ, пропускаемых фильтром.
             % Остальные отсчеты (в частотном спектре!) будут ослабляться по амплитуде.
-            NC = 15;
-            
-            for i = 1:N
-                % Передаточная функция фильтра Баттерворта 4-го порядка
-                H(i) = 1 / (sqrt(1 + (i / NC) .^ 4));
+            % Находим наилучшую
+            for NC = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value
+                for i = 1:N
+                    % Передаточная функция фильтра Баттерворта 4-го порядка
+                    H(i) = 1 / (sqrt(1 + (i / NC) .^ 4));
+                end
+                
+                i = 1:N;
+    
+                % Частотный спектр сигнала с шумом
+                XX1 = fft(x, N); 
+    
+                % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
+                Z = ifft(XX1 .* H);
+    
+                % Полная погрешность в процентах
+                DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
+                SKO = std(DZ1);
+
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
+                    NC_optimal = NC;
+                    Z_optimal = Z;
+                end
             end
-            
-            i = 1:N;
+            SKO_Butterworth = SKO_min;
+            NC_Butterworth = NC_optimal;
 
-            % Частотный спектр сигнала с шумом
-            XX1 = fft(x, N); 
-
-            % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
-            Z = ifft(XX1 .* H);
-
-            % Полная погрешность в процентах
-            DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
-            SKO_Butterworth = std(DZ1);
+            app.BestBandwidthFoundLabel_Butterworth.Text = "Best bandwidth found: NC = " + NC_optimal;
 
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_Butterworth, i, 2 * real(Z(i)), app.FilterGraphicColorButterworth);
+            plot(app.UIAxesSignals_3_Butterworth, i, 2 * real(Z_optimal(i)), app.FilterGraphicColorButterworth);
             % ----------------------------------------
 
             % ----------------------------------------
-            % Фильтр Чебышева
+            % Фильтр Чебышёва
             % ----------------------------------------
+            SKO_min = 999999;
+            NC_optimal = app.SmoothingWindowMin.Value;
+            Z_optimal = zeros(1, N);
             % NC - полоса пропускания фильтра по уровню 0,7 амплитуды.
             % Выражена в количестве отчетов спектра БПФ, пропускаемых фильтром.
             % Остальные отсчеты (в частотном спектре!) будут ослабляться по амплитуде.
-            NC = 4;
-            
-            % Параметр фильтра Чебышёва
-            e = 0.1;
-                                  
-            for i=1:N
-                % Значение полинома Чебышёва 1 рода 2-го порядка  
-                Tn = 2 * (i / NC) ^ 2 - 1;
+            % Находим наилучшую
+            for NC = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value
+                % Параметр фильтра Чебышёва
+                e = 0.1;
+                                      
+                for i=1:N
+                    % Значение полинома Чебышёва 1 рода 2-го порядка  
+                    Tn = 2 * (i / NC) ^ 2 - 1;
+    
+                    % Частотная характеристика фильтра Чебышева
+                    H(i) = 1 / sqrt(1 + e ^ 2 * Tn ^ 2);
+                end
+                
+                i = 1:N;
+    
+                % Частотный спектр сигнала с шумом
+                XX1 = fft(x, N); 
+                
+                % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
+                Z = ifft(XX1 .* H);
+    
+                % Полная погрешность в процентах
+                DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 / (max(s) - min(s));
+                SKO = std(DZ1);
 
-                % Частотная характеристика фильтра Чебышева
-                H(i) = 1 / sqrt(1 + e ^ 2 * Tn ^ 2);
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
+                    NC_optimal = NC;
+                    Z_optimal = Z;
+                end
             end
-            
-            i = 1:N;
+            SKO_Chebyshev = SKO_min;
+            NC_Chebyshev = NC_optimal;
 
-            % Частотный спектр сигнала с шумом
-            XX1 = fft(x, N); 
-            
-            % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
-            Z = ifft(XX1 .* H);
-
-            % Полная погрешность в процентах
-            DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 / (max(s) - min(s));
-            SKO_Chebyshev = std(DZ1);
+            app.BestBandwidthFoundLabel_Chebyshev.Text = "Best bandwidth found: NC = " + NC_optimal;
             
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_Chebyshev, i, 2 * real(Z(i)), app.FilterGraphicColorChebyshev);
+            plot(app.UIAxesSignals_3_Chebyshev, i, 2 * real(Z_optimal(i)), app.FilterGraphicColorChebyshev);
             % ----------------------------------------
 
             % ----------------------------------------
-            % Инверсный фильтр Чебышева
+            % Инверсный фильтр Чебышёва
             % ----------------------------------------
+            SKO_min = 999999;
+            NC_optimal = app.SmoothingWindowMin.Value;
+            Z_optimal = zeros(1, N);
             % NC - полоса пропускания фильтра по уровню 0,7 амплитуды.
             % Выражена в количестве отчетов спектра БПФ, пропускаемых фильтром.
             % Остальные отсчеты (в частотном спектре!) будут ослабляться по амплитуде.
-            NC = 16;
-            
-            % Параметр фильтра Чебышёва вместо 0.001
-            e = 0.1;
-                                  
-            for i = 1:N   
-                % Значение полинома Чебышёва 1 рода 2-го порядка
-                Tn = 2 * (NC / i) ^ 2 - 1;
+            % Находим наилучшую
+            for NC = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value
+                % Параметр фильтра Чебышёва вместо 0.001
+                e = 0.1;
+                                      
+                for i = 1:N   
+                    % Значение полинома Чебышёва 1 рода 2-го порядка
+                    Tn = 2 * (NC / i) ^ 2 - 1;
+    
+                    % Частотная характеристика инверсного фильтра Чебышёва
+                    H(i) = sqrt((e ^ 2 * Tn ^ 2) / ((1 + e ^ 2 * Tn ^ 2)));
+                end
+                            
+                i = 1:N;
+    
+                % Частотный спектр сигнала с шумом
+                XX1 = fft(x, N); 
+                
+                % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
+                Z = ifft(XX1 .* H);
+    
+                % Полная погрешность в процентах
+                DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
+                SKO = std(DZ1);
 
-                % Частотная характеристика инверсного фильтра Чебышёва
-                H(i) = sqrt((e ^ 2 * Tn ^ 2) / ((1 + e ^ 2 * Tn ^ 2)));
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
+                    NC_optimal = NC;
+                    Z_optimal = Z;
+                end
             end
-                        
-            i = 1:N;
+            SKO_ChebyshevInverse = SKO_min;
+            NC_ChebyshevInverse = NC_optimal;
 
-            % Частотный спектр сигнала с шумом
-            XX1 = fft(x, N); 
-            
-            % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
-            Z = ifft(XX1 .* H);
-
-            % Полная погрешность в процентах
-            DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
-            SKO_ChebyshevInverse = std(DZ1);
-                        
+            app.BestBandwidthFoundLabel_ChebyshevInverse.Text = "Best bandwidth found: NC = " + NC_optimal;
+                  
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z(i)), app.FilterGraphicColorChebyshevInverse);
+            plot(app.UIAxesSignals_3_ChebyshevInverse, i, 2 * real(Z_optimal(i)), app.FilterGraphicColorChebyshevInverse);
             % ----------------------------------------
 
             % ----------------------------------------
             % Низкочастотный фильтр 1-го порядка
             % ----------------------------------------
+            SKO_min = 999999;
+            NC_optimal = app.SmoothingWindowMin.Value;
+            Z_optimal = zeros(1, N);
             % NC - полоса пропускания фильтра по уровню 0,7 амплитуды.
             % Выражена в количестве отчетов спектра БПФ, пропускаемых фильтром.
             % Остальные отсчеты (в частотном спектре!) будут ослабляться по амплитуде.
-            NC = 64;
-                 
-            for i = 1:N    
-                % Передаточная функция цифрового фильтра НЧ 1-го порядка в частотной области
-                H(i) = 1 / (1 + j * i / NC); 
+            % Находим наилучшую
+            for NC = app.SmoothingWindowMin.Value:app.SmoothingWindowMax.Value 
+                for i = 1:N    
+                    % Передаточная функция цифрового фильтра НЧ 1-го порядка в частотной области
+                    H(i) = 1 / (1 + 1j * i / NC); 
+                end
+    
+                i = 1:N;
+                          
+                % Частотный спектр сигнала с шумом
+                XX1 = fft(x, N); 
+                
+                % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
+                Z = ifft(XX1 .* H);
+    
+                % Полная погрешность в процентах
+                DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
+                SKO = std(DZ1);
+
+                if (SKO < SKO_min)
+                    SKO_min = SKO;
+                    NC_optimal = NC;
+                    Z_optimal = Z;
+                end
             end
+            SKO_LowPass = SKO_min;
+            NC_LowPass = NC_optimal;
 
-            i = 1:N;
-                      
-            % Частотный спектр сигнала с шумом
-            XX1 = fft(x, N); 
+            app.BestBandwidthFoundLabel_LowPass.Text = "Best bandwidth found: NC = " + NC_optimal;
             
-            % Свертка частотного спектра зашумленного сигнала с частотной хар-кой фильтра
-            Z = ifft(XX1 .* H);
-
-            % Полная погрешность в процентах
-            DZ1(i) = (2 * real(Z(i)) - s(i)) * 100 ./ (max(s) - min(s));
-            SKO_LowPass = std(DZ1);
-
             % Вывод графика сигнала после применения фильтра
-            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z(i)), app.FilterGraphicColorLowPass);
+            plot(app.UIAxesSignals_3_LowPass, i, 2 * real(Z_optimal(i)), app.FilterGraphicColorLowPass);
             % ----------------------------------------
 
             % Устанавливаем вертикальные границы области графика - чтобы у всех графиков они были одинаковые
@@ -734,10 +829,27 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_LowPass.YLim = y_limit;
 
             % ----------------------------------------
+            % Обновляем таблицу с найденными оптимальными W и NC
+            % ----------------------------------------
+            % Add new row to the table
+            app.FiltersDataWOrNC = [app.FiltersDataWOrNC; Q W_Median W_MovingAverage NC_Butterworth NC_Chebyshev NC_ChebyshevInverse NC_LowPass];
+
+            % Sort values to make sure they are ascending
+            app.FiltersDataWOrNC = sortrows(app.FiltersDataWOrNC);
+
+            % Filter rows with same first column (K)
+            [~,ia,~] = unique(app.FiltersDataWOrNC(:,1), 'rows');
+            app.FiltersDataWOrNC = app.FiltersDataWOrNC(ia,:);
+
+            % Redraw table
+            app.UpdateTableChartFiltersWOrNC();
+            % ----------------------------------------
+
+            % ----------------------------------------
             % Обновляем график зависимости погрешности от K
             % ----------------------------------------
             % Add new row to the table
-            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median_min SKO_MovingAverage SKO_Butterworth SKO_Chebyshev SKO_ChebyshevInverse SKO_LowPass];
+            app.FiltersData = [app.FiltersData; Q SKO_KolVin SKO_Median SKO_MovingAverage SKO_Butterworth SKO_Chebyshev SKO_ChebyshevInverse SKO_LowPass];
 
             % Sort values to make sure they are ascending
             app.FiltersData = sortrows(app.FiltersData);
@@ -763,6 +875,7 @@ classdef application < matlab.apps.AppBase
             end
             app.ClearTableFourier();
             app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
 
         % Value changed function: NumberofpointsNEditField
@@ -770,6 +883,7 @@ classdef application < matlab.apps.AppBase
             app.UpdateMaxLimit();
             app.ClearTableFourier();
             app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
 
         % Value changed function: PeriodsnumberkpEditField
@@ -777,6 +891,7 @@ classdef application < matlab.apps.AppBase
             app.UpdateMinLimit();
             app.ClearTableFourier();
             app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
 
         % Value changed function: NoiseSKOQEditField
@@ -788,12 +903,14 @@ classdef application < matlab.apps.AppBase
         function SignaltypeDropDownValueChanged(app, event)
             app.ClearTableFourier();
             app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
 
         % Value changed function: NumberofaccumulationsEditField
         function NumberofaccumulationsEditFieldValueChanged(app, event)
             app.ClearTableFourier();
             app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
 
         % Button pushed function: ClearTableButton_2
@@ -801,9 +918,21 @@ classdef application < matlab.apps.AppBase
             app.ClearTableFourier();
         end
 
-        % Button pushed function: ClearTableButton_3
-        function ClearTableButton_3Pushed(app, event)
+        % Button pushed function: ClearTableButton_SKO
+        function ClearTableButton_SKOPushed(app, event)
             app.ClearTableFilters();
+        end
+
+        % Button pushed function: ClearTableButton_WOrNC
+        function ClearTableButton_WOrNCPushed(app, event)
+            app.ClearTableFiltersWOrNC();
+        end
+
+        % Value changed function: SignalamplitudeEditField
+        function SignalamplitudeEditFieldValueChanged(app, event)
+            app.ClearTableFourier();
+            app.ClearTableFilters();
+            app.ClearTableFiltersWOrNC();
         end
     end
 
@@ -815,20 +944,20 @@ classdef application < matlab.apps.AppBase
 
             % Create ModelSignalGeneratorUIFigure and hide until all components are created
             app.ModelSignalGeneratorUIFigure = uifigure('Visible', 'off');
-            app.ModelSignalGeneratorUIFigure.Position = [100 100 1200 724];
+            app.ModelSignalGeneratorUIFigure.Position = [100 100 1200 819];
             app.ModelSignalGeneratorUIFigure.Name = 'Model Signal Generator';
 
             % Create GenerateButton
             app.GenerateButton = uibutton(app.ModelSignalGeneratorUIFigure, 'push');
             app.GenerateButton.ButtonPushedFcn = createCallbackFcn(app, @GenerateButtonPushed, true);
             app.GenerateButton.BackgroundColor = [0.9137 1 0.8];
-            app.GenerateButton.Position = [18 17 156 42];
+            app.GenerateButton.Position = [22 18 151 42];
             app.GenerateButton.Text = 'Generate';
 
             % Create PeriodsNumberLabel
             app.PeriodsNumberLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.PeriodsNumberLabel.HorizontalAlignment = 'right';
-            app.PeriodsNumberLabel.Position = [39 342 117 22];
+            app.PeriodsNumberLabel.Position = [39 437 117 22];
             app.PeriodsNumberLabel.Text = 'Periods number (kp):';
 
             % Create PeriodsnumberkpEditField
@@ -836,13 +965,13 @@ classdef application < matlab.apps.AppBase
             app.PeriodsnumberkpEditField.ValueDisplayFormat = '%9.1f';
             app.PeriodsnumberkpEditField.ValueChangedFcn = createCallbackFcn(app, @PeriodsnumberkpEditFieldValueChanged, true);
             app.PeriodsnumberkpEditField.HorizontalAlignment = 'center';
-            app.PeriodsnumberkpEditField.Position = [18 321 155 22];
+            app.PeriodsnumberkpEditField.Position = [18 416 155 22];
             app.PeriodsnumberkpEditField.Value = 5;
 
             % Create NoiseSKOLabel
             app.NoiseSKOLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseSKOLabel.HorizontalAlignment = 'right';
-            app.NoiseSKOLabel.Position = [51 405 88 22];
+            app.NoiseSKOLabel.Position = [51 500 88 22];
             app.NoiseSKOLabel.Text = 'Noise SKO (Q):';
 
             % Create NoiseSKOQEditField
@@ -850,39 +979,40 @@ classdef application < matlab.apps.AppBase
             app.NoiseSKOQEditField.ValueDisplayFormat = '%9.1f';
             app.NoiseSKOQEditField.ValueChangedFcn = createCallbackFcn(app, @NoiseSKOQEditFieldValueChanged, true);
             app.NoiseSKOQEditField.HorizontalAlignment = 'center';
-            app.NoiseSKOQEditField.Position = [18 384 155 22];
+            app.NoiseSKOQEditField.Position = [18 479 155 22];
             app.NoiseSKOQEditField.Value = 0.1;
 
             % Create SignalAmplitudeLabel
             app.SignalAmplitudeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.SignalAmplitudeLabel.HorizontalAlignment = 'right';
-            app.SignalAmplitudeLabel.Position = [44 530 97 22];
+            app.SignalAmplitudeLabel.Position = [44 625 97 22];
             app.SignalAmplitudeLabel.Text = 'Signal amplitude:';
 
             % Create SignalamplitudeEditField
             app.SignalamplitudeEditField = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
             app.SignalamplitudeEditField.ValueDisplayFormat = '%9.1f';
+            app.SignalamplitudeEditField.ValueChangedFcn = createCallbackFcn(app, @SignalamplitudeEditFieldValueChanged, true);
             app.SignalamplitudeEditField.HorizontalAlignment = 'center';
-            app.SignalamplitudeEditField.Position = [17 509 155 22];
+            app.SignalamplitudeEditField.Position = [17 604 155 22];
             app.SignalamplitudeEditField.Value = 1;
 
             % Create NoiseTypeLabel
             app.NoiseTypeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NoiseTypeLabel.HorizontalAlignment = 'right';
-            app.NoiseTypeLabel.Position = [64 463 65 22];
+            app.NoiseTypeLabel.Position = [64 558 65 22];
             app.NoiseTypeLabel.Text = 'Noise type:';
 
             % Create NoisetypeDropDown
             app.NoisetypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
             app.NoisetypeDropDown.Items = {'None', 'Normally Distributed', 'White Gaussian Noise'};
             app.NoisetypeDropDown.ValueChangedFcn = createCallbackFcn(app, @NoisetypeDropDownValueChanged, true);
-            app.NoisetypeDropDown.Position = [18 442 155 22];
+            app.NoisetypeDropDown.Position = [18 537 155 22];
             app.NoisetypeDropDown.Value = 'Normally Distributed';
 
             % Create NumberOfPointsLabel
             app.NumberOfPointsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NumberOfPointsLabel.HorizontalAlignment = 'right';
-            app.NumberOfPointsLabel.Position = [38 590 120 22];
+            app.NumberOfPointsLabel.Position = [38 685 120 22];
             app.NumberOfPointsLabel.Text = 'Number of points (N):';
 
             % Create NumberofpointsNEditField
@@ -891,33 +1021,33 @@ classdef application < matlab.apps.AppBase
             app.NumberofpointsNEditField.ValueDisplayFormat = '%.0f';
             app.NumberofpointsNEditField.ValueChangedFcn = createCallbackFcn(app, @NumberofpointsNEditFieldValueChanged, true);
             app.NumberofpointsNEditField.HorizontalAlignment = 'center';
-            app.NumberofpointsNEditField.Position = [17 569 155 22];
+            app.NumberofpointsNEditField.Position = [17 664 155 22];
             app.NumberofpointsNEditField.Value = 1024;
 
             % Create SignalTypeLabel
             app.SignalTypeLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.SignalTypeLabel.HorizontalAlignment = 'right';
-            app.SignalTypeLabel.Position = [60 647 68 22];
+            app.SignalTypeLabel.Position = [60 742 68 22];
             app.SignalTypeLabel.Text = 'Signal type:';
 
             % Create ModelSignalGeneratorLabel
             app.ModelSignalGeneratorLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ModelSignalGeneratorLabel.HorizontalAlignment = 'center';
             app.ModelSignalGeneratorLabel.FontSize = 24;
-            app.ModelSignalGeneratorLabel.Position = [1 682 1200 31];
+            app.ModelSignalGeneratorLabel.Position = [1 777 1200 31];
             app.ModelSignalGeneratorLabel.Text = 'Model Signal Generator';
 
             % Create SignaltypeDropDown
             app.SignaltypeDropDown = uidropdown(app.ModelSignalGeneratorUIFigure);
             app.SignaltypeDropDown.Items = {'Harmonic (Sinusoidal)', 'Sawtooth', 'Triangular', 'Rectangular Pulses', 'f(x) = abs(sin(x))', 'Bell-shaped'};
             app.SignaltypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignaltypeDropDownValueChanged, true);
-            app.SignaltypeDropDown.Position = [17 626 155 22];
+            app.SignaltypeDropDown.Position = [17 721 155 22];
             app.SignaltypeDropDown.Value = 'Harmonic (Sinusoidal)';
 
             % Create NumberOfAccumulationsLabel
             app.NumberOfAccumulationsLabel = uilabel(app.ModelSignalGeneratorUIFigure);
             app.NumberOfAccumulationsLabel.HorizontalAlignment = 'right';
-            app.NumberOfAccumulationsLabel.Position = [25 261 144 22];
+            app.NumberOfAccumulationsLabel.Position = [25 356 144 22];
             app.NumberOfAccumulationsLabel.Text = 'Number of accumulations:';
 
             % Create NumberofaccumulationsEditField
@@ -926,14 +1056,14 @@ classdef application < matlab.apps.AppBase
             app.NumberofaccumulationsEditField.ValueDisplayFormat = '%.0f';
             app.NumberofaccumulationsEditField.ValueChangedFcn = createCallbackFcn(app, @NumberofaccumulationsEditFieldValueChanged, true);
             app.NumberofaccumulationsEditField.HorizontalAlignment = 'center';
-            app.NumberofaccumulationsEditField.Position = [18 240 155 22];
+            app.NumberofaccumulationsEditField.Position = [18 335 155 22];
             app.NumberofaccumulationsEditField.Value = 1;
 
             % Create ThenumberofFourierseriestermsKkpKN4Label
             app.ThenumberofFourierseriestermsKkpKN4Label = uilabel(app.ModelSignalGeneratorUIFigure);
             app.ThenumberofFourierseriestermsKkpKN4Label.HorizontalAlignment = 'center';
             app.ThenumberofFourierseriestermsKkpKN4Label.WordWrap = 'on';
-            app.ThenumberofFourierseriestermsKkpKN4Label.Position = [11 176 166 30];
+            app.ThenumberofFourierseriestermsKkpKN4Label.Position = [11 263 166 30];
             app.ThenumberofFourierseriestermsKkpKN4Label.Text = 'The number of Fourier series terms (K, kp <= K <= N/4):';
 
             % Create TheNumberOfFourierSeriesTermsEditField
@@ -941,25 +1071,25 @@ classdef application < matlab.apps.AppBase
             app.TheNumberOfFourierSeriesTermsEditField.RoundFractionalValues = 'on';
             app.TheNumberOfFourierSeriesTermsEditField.ValueDisplayFormat = '%.0f';
             app.TheNumberOfFourierSeriesTermsEditField.HorizontalAlignment = 'center';
-            app.TheNumberOfFourierSeriesTermsEditField.Position = [62 152 66 22];
+            app.TheNumberOfFourierSeriesTermsEditField.Position = [62 239 66 22];
             app.TheNumberOfFourierSeriesTermsEditField.Value = 5;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.HorizontalAlignment = 'right';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.WordWrap = 'on';
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Position = [10 152 46 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Position = [10 239 46 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin.Text = '5 <=';
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMax
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.WordWrap = 'on';
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Position = [131 152 42 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Position = [131 239 42 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMax.Text = '<= 256';
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.ModelSignalGeneratorUIFigure);
-            app.TabGroup.Position = [191 17 995 652];
+            app.TabGroup.Position = [191 17 995 747];
 
             % Create Lab1SignalTab
             app.Lab1SignalTab = uitab(app.TabGroup);
@@ -973,13 +1103,13 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_1.Box = 'on';
             app.UIAxesSignals_1.XGrid = 'on';
             app.UIAxesSignals_1.YGrid = 'on';
-            app.UIAxesSignals_1.Position = [17 21 967 570];
+            app.UIAxesSignals_1.Position = [17 16 967 670];
 
             % Create SignalLabel_1
             app.SignalLabel_1 = uilabel(app.Lab1SignalTab);
             app.SignalLabel_1.BackgroundColor = [1 1 1];
             app.SignalLabel_1.FontColor = [1 0 0];
-            app.SignalLabel_1.Position = [501 594 38 22];
+            app.SignalLabel_1.Position = [501 689 38 22];
             app.SignalLabel_1.Text = 'Signal';
 
             % Create Lab2FourierTab
@@ -994,7 +1124,7 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_2.Box = 'on';
             app.UIAxesSignals_2.XGrid = 'on';
             app.UIAxesSignals_2.YGrid = 'on';
-            app.UIAxesSignals_2.Position = [8 74 564 515];
+            app.UIAxesSignals_2.Position = [8 73 564 611];
 
             % Create UIAxesSKO_2
             app.UIAxesSKO_2 = uiaxes(app.Lab2FourierTab);
@@ -1004,67 +1134,67 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSKO_2.Box = 'on';
             app.UIAxesSKO_2.XGrid = 'on';
             app.UIAxesSKO_2.YGrid = 'on';
-            app.UIAxesSKO_2.Position = [587 11 393 311];
+            app.UIAxesSKO_2.Position = [587 16 393 401];
 
             % Create SignalLabel_2
             app.SignalLabel_2 = uilabel(app.Lab2FourierTab);
             app.SignalLabel_2.BackgroundColor = [1 1 1];
             app.SignalLabel_2.FontColor = [1 0 0];
-            app.SignalLabel_2.Position = [161 590 38 22];
+            app.SignalLabel_2.Position = [161 685 38 22];
             app.SignalLabel_2.Text = 'Signal';
 
             % Create FourierLabel_2
             app.FourierLabel_2 = uilabel(app.Lab2FourierTab);
             app.FourierLabel_2.BackgroundColor = [1 1 1];
             app.FourierLabel_2.FontColor = [0 0 1];
-            app.FourierLabel_2.Position = [254 590 43 22];
+            app.FourierLabel_2.Position = [254 685 43 22];
             app.FourierLabel_2.Text = 'Fourier';
 
             % Create FouriercomplexLabel_2
             app.FouriercomplexLabel_2 = uilabel(app.Lab2FourierTab);
             app.FouriercomplexLabel_2.BackgroundColor = [1 1 1];
             app.FouriercomplexLabel_2.FontColor = [1 0 1];
-            app.FouriercomplexLabel_2.Position = [342 590 99 22];
+            app.FouriercomplexLabel_2.Position = [342 685 99 22];
             app.FouriercomplexLabel_2.Text = 'Fourier (complex)';
 
             % Create UITableSKO_2
             app.UITableSKO_2 = uitable(app.Lab2FourierTab);
             app.UITableSKO_2.ColumnName = {'K'; 'SKO'; 'SKO_Complex'};
             app.UITableSKO_2.RowName = {};
-            app.UITableSKO_2.Position = [596 382 376 201];
+            app.UITableSKO_2.Position = [596 477 376 201];
 
             % Create ClearTableButton_2
             app.ClearTableButton_2 = uibutton(app.Lab2FourierTab, 'push');
             app.ClearTableButton_2.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButton_2Pushed, true);
             app.ClearTableButton_2.BackgroundColor = [1 0.9059 0.6784];
-            app.ClearTableButton_2.Position = [596 362 376 23];
+            app.ClearTableButton_2.Position = [596 457 376 23];
             app.ClearTableButton_2.Text = 'Clear table';
 
             % Create FourierSKOLabel_2
             app.FourierSKOLabel_2 = uilabel(app.Lab2FourierTab);
             app.FourierSKOLabel_2.BackgroundColor = [1 1 1];
             app.FourierSKOLabel_2.FontColor = [0 0 1];
-            app.FourierSKOLabel_2.Position = [698 325 72 22];
+            app.FourierSKOLabel_2.Position = [698 420 72 22];
             app.FourierSKOLabel_2.Text = 'Fourier SKO';
 
             % Create FouriercomplexSKOLabel_2
             app.FouriercomplexSKOLabel_2 = uilabel(app.Lab2FourierTab);
             app.FouriercomplexSKOLabel_2.BackgroundColor = [1 1 1];
             app.FouriercomplexSKOLabel_2.FontColor = [1 0 1];
-            app.FouriercomplexSKOLabel_2.Position = [786 325 128 22];
+            app.FouriercomplexSKOLabel_2.Position = [786 420 128 22];
             app.FouriercomplexSKOLabel_2.Text = 'Fourier (complex) SKO';
 
             % Create LastinnervariablesTextAreaLabel
             app.LastinnervariablesTextAreaLabel = uilabel(app.Lab2FourierTab);
             app.LastinnervariablesTextAreaLabel.HorizontalAlignment = 'right';
-            app.LastinnervariablesTextAreaLabel.Position = [243 41 112 22];
+            app.LastinnervariablesTextAreaLabel.Position = [254 46 112 22];
             app.LastinnervariablesTextAreaLabel.Text = 'Last inner variables:';
 
             % Create LastinnervariablesTextArea
             app.LastinnervariablesTextArea = uitextarea(app.Lab2FourierTab);
             app.LastinnervariablesTextArea.HorizontalAlignment = 'center';
             app.LastinnervariablesTextArea.WordWrap = 'off';
-            app.LastinnervariablesTextArea.Position = [37 11 524 24];
+            app.LastinnervariablesTextArea.Position = [48 16 524 24];
 
             % Create Lab3FiltersTab
             app.Lab3FiltersTab = uitab(app.TabGroup);
@@ -1078,24 +1208,24 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSKO_3.Box = 'on';
             app.UIAxesSKO_3.XGrid = 'on';
             app.UIAxesSKO_3.YGrid = 'on';
-            app.UIAxesSKO_3.Position = [655 13 328 273];
+            app.UIAxesSKO_3.Position = [652 7 328 374];
 
             % Create UITableSKO_3
             app.UITableSKO_3 = uitable(app.Lab3FiltersTab);
-            app.UITableSKO_3.ColumnName = {'Q'; 'KolVin'; 'Med'; 'MovAve'; 'But'; 'Che'; 'CheInv'; 'LowPas'};
+            app.UITableSKO_3.ColumnName = {'Q'; 'KolmWin'; 'Median'; 'MovAver'; 'Butterworth'; 'Cheb'; 'ChebInv'; 'LowPass'};
             app.UITableSKO_3.RowName = {};
-            app.UITableSKO_3.Position = [25 33 624 251];
+            app.UITableSKO_3.Position = [37 215 612 164];
 
-            % Create ClearTableButton_3
-            app.ClearTableButton_3 = uibutton(app.Lab3FiltersTab, 'push');
-            app.ClearTableButton_3.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButton_3Pushed, true);
-            app.ClearTableButton_3.BackgroundColor = [1 0.9059 0.6784];
-            app.ClearTableButton_3.Position = [25 13 624 23];
-            app.ClearTableButton_3.Text = 'Clear table';
+            % Create ClearTableButton_SKO
+            app.ClearTableButton_SKO = uibutton(app.Lab3FiltersTab, 'push');
+            app.ClearTableButton_SKO.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButton_SKOPushed, true);
+            app.ClearTableButton_SKO.BackgroundColor = [1 0.9059 0.6784];
+            app.ClearTableButton_SKO.Position = [37 195 612 23];
+            app.ClearTableButton_SKO.Text = 'Clear table';
 
             % Create TabGroup2
             app.TabGroup2 = uitabgroup(app.Lab3FiltersTab);
-            app.TabGroup2.Position = [17 296 967 320];
+            app.TabGroup2.Position = [17 391 967 320];
 
             % Create SignalTab
             app.SignalTab = uitab(app.TabGroup2);
@@ -1139,12 +1269,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Median.YGrid = 'on';
             app.UIAxesSignals_3_Median.Position = [8 8 947 279];
 
-            % Create BestsmoothingwindowfoundWLabel
-            app.BestsmoothingwindowfoundWLabel = uilabel(app.MedianTab);
-            app.BestsmoothingwindowfoundWLabel.HorizontalAlignment = 'right';
-            app.BestsmoothingwindowfoundWLabel.VerticalAlignment = 'bottom';
-            app.BestsmoothingwindowfoundWLabel.Position = [638 4 301 22];
-            app.BestsmoothingwindowfoundWLabel.Text = 'Best smoothing window found: W = ?';
+            % Create BestSmoothingWindowFoundLabel_Median
+            app.BestSmoothingWindowFoundLabel_Median = uilabel(app.MedianTab);
+            app.BestSmoothingWindowFoundLabel_Median.HorizontalAlignment = 'right';
+            app.BestSmoothingWindowFoundLabel_Median.VerticalAlignment = 'bottom';
+            app.BestSmoothingWindowFoundLabel_Median.Position = [638 4 301 22];
+            app.BestSmoothingWindowFoundLabel_Median.Text = 'Best smoothing window found: W = ?';
 
             % Create MovingAverageTab
             app.MovingAverageTab = uitab(app.TabGroup2);
@@ -1160,12 +1290,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_MovingAverage.YGrid = 'on';
             app.UIAxesSignals_3_MovingAverage.Position = [8 8 947 279];
 
-            % Create SmoothingwindowW9Label
-            app.SmoothingwindowW9Label = uilabel(app.MovingAverageTab);
-            app.SmoothingwindowW9Label.HorizontalAlignment = 'right';
-            app.SmoothingwindowW9Label.VerticalAlignment = 'bottom';
-            app.SmoothingwindowW9Label.Position = [638 4 301 22];
-            app.SmoothingwindowW9Label.Text = 'Smoothing window: W = 9';
+            % Create BestSmoothingWindowFoundLabel_MovingAverage
+            app.BestSmoothingWindowFoundLabel_MovingAverage = uilabel(app.MovingAverageTab);
+            app.BestSmoothingWindowFoundLabel_MovingAverage.HorizontalAlignment = 'right';
+            app.BestSmoothingWindowFoundLabel_MovingAverage.VerticalAlignment = 'bottom';
+            app.BestSmoothingWindowFoundLabel_MovingAverage.Position = [638 4 301 22];
+            app.BestSmoothingWindowFoundLabel_MovingAverage.Text = 'Best smoothing window found: W = ?';
 
             % Create ButterworthTab
             app.ButterworthTab = uitab(app.TabGroup2);
@@ -1181,12 +1311,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Butterworth.YGrid = 'on';
             app.UIAxesSignals_3_Butterworth.Position = [8 8 947 279];
 
-            % Create BandwidthNC15Label
-            app.BandwidthNC15Label = uilabel(app.ButterworthTab);
-            app.BandwidthNC15Label.HorizontalAlignment = 'right';
-            app.BandwidthNC15Label.VerticalAlignment = 'bottom';
-            app.BandwidthNC15Label.Position = [638 4 301 22];
-            app.BandwidthNC15Label.Text = 'Bandwidth: NC = 15';
+            % Create BestBandwidthFoundLabel_Butterworth
+            app.BestBandwidthFoundLabel_Butterworth = uilabel(app.ButterworthTab);
+            app.BestBandwidthFoundLabel_Butterworth.HorizontalAlignment = 'right';
+            app.BestBandwidthFoundLabel_Butterworth.VerticalAlignment = 'bottom';
+            app.BestBandwidthFoundLabel_Butterworth.Position = [638 4 301 22];
+            app.BestBandwidthFoundLabel_Butterworth.Text = 'Best bandwidth found: NC = ?';
 
             % Create ChebyshevTab
             app.ChebyshevTab = uitab(app.TabGroup2);
@@ -1202,12 +1332,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_Chebyshev.YGrid = 'on';
             app.UIAxesSignals_3_Chebyshev.Position = [8 8 947 279];
 
-            % Create BandwidthNC4Label
-            app.BandwidthNC4Label = uilabel(app.ChebyshevTab);
-            app.BandwidthNC4Label.HorizontalAlignment = 'right';
-            app.BandwidthNC4Label.VerticalAlignment = 'bottom';
-            app.BandwidthNC4Label.Position = [638 4 301 22];
-            app.BandwidthNC4Label.Text = 'Bandwidth: NC = 4';
+            % Create BestBandwidthFoundLabel_Chebyshev
+            app.BestBandwidthFoundLabel_Chebyshev = uilabel(app.ChebyshevTab);
+            app.BestBandwidthFoundLabel_Chebyshev.HorizontalAlignment = 'right';
+            app.BestBandwidthFoundLabel_Chebyshev.VerticalAlignment = 'bottom';
+            app.BestBandwidthFoundLabel_Chebyshev.Position = [638 4 301 22];
+            app.BestBandwidthFoundLabel_Chebyshev.Text = 'Best bandwidth found: NC = ?';
 
             % Create ChebyshevInverseTab
             app.ChebyshevInverseTab = uitab(app.TabGroup2);
@@ -1223,12 +1353,12 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_ChebyshevInverse.YGrid = 'on';
             app.UIAxesSignals_3_ChebyshevInverse.Position = [8 8 947 279];
 
-            % Create BandwidthNC16Label
-            app.BandwidthNC16Label = uilabel(app.ChebyshevInverseTab);
-            app.BandwidthNC16Label.HorizontalAlignment = 'right';
-            app.BandwidthNC16Label.VerticalAlignment = 'bottom';
-            app.BandwidthNC16Label.Position = [638 4 301 22];
-            app.BandwidthNC16Label.Text = 'Bandwidth: NC = 16';
+            % Create BestBandwidthFoundLabel_ChebyshevInverse
+            app.BestBandwidthFoundLabel_ChebyshevInverse = uilabel(app.ChebyshevInverseTab);
+            app.BestBandwidthFoundLabel_ChebyshevInverse.HorizontalAlignment = 'right';
+            app.BestBandwidthFoundLabel_ChebyshevInverse.VerticalAlignment = 'bottom';
+            app.BestBandwidthFoundLabel_ChebyshevInverse.Position = [638 4 301 22];
+            app.BestBandwidthFoundLabel_ChebyshevInverse.Text = 'Best bandwidth found: NC = ?';
 
             % Create LowPassTab
             app.LowPassTab = uitab(app.TabGroup2);
@@ -1244,18 +1374,37 @@ classdef application < matlab.apps.AppBase
             app.UIAxesSignals_3_LowPass.YGrid = 'on';
             app.UIAxesSignals_3_LowPass.Position = [8 8 947 279];
 
-            % Create BandwidthNC64Label
-            app.BandwidthNC64Label = uilabel(app.LowPassTab);
-            app.BandwidthNC64Label.HorizontalAlignment = 'right';
-            app.BandwidthNC64Label.VerticalAlignment = 'bottom';
-            app.BandwidthNC64Label.Position = [638 4 301 22];
-            app.BandwidthNC64Label.Text = 'Bandwidth: NC = 64';
+            % Create BestBandwidthFoundLabel_LowPass
+            app.BestBandwidthFoundLabel_LowPass = uilabel(app.LowPassTab);
+            app.BestBandwidthFoundLabel_LowPass.HorizontalAlignment = 'right';
+            app.BestBandwidthFoundLabel_LowPass.VerticalAlignment = 'bottom';
+            app.BestBandwidthFoundLabel_LowPass.Position = [638 4 301 22];
+            app.BestBandwidthFoundLabel_LowPass.Text = 'Best bandwidth found: NC = ?';
 
-            % Create SmoothingwindowwidthEditFieldLabel
-            app.SmoothingwindowwidthEditFieldLabel = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.SmoothingwindowwidthEditFieldLabel.HorizontalAlignment = 'right';
-            app.SmoothingwindowwidthEditFieldLabel.Position = [27 97 140 22];
-            app.SmoothingwindowwidthEditFieldLabel.Text = 'Smoothing window width:';
+            % Create UITableWOrNC
+            app.UITableWOrNC = uitable(app.Lab3FiltersTab);
+            app.UITableWOrNC.ColumnName = {'Q'; 'Median'; 'MovAver'; 'Butterworth'; 'Cheb'; 'ChebInv'; 'LowPass'};
+            app.UITableWOrNC.RowName = {};
+            app.UITableWOrNC.Position = [37 27 612 159];
+
+            % Create SKOLabel
+            app.SKOLabel = uilabel(app.Lab3FiltersTab);
+            app.SKOLabel.HorizontalAlignment = 'center';
+            app.SKOLabel.Position = [5 278 30 22];
+            app.SKOLabel.Text = 'SKO';
+
+            % Create ClearTableButton_WOrNC
+            app.ClearTableButton_WOrNC = uibutton(app.Lab3FiltersTab, 'push');
+            app.ClearTableButton_WOrNC.ButtonPushedFcn = createCallbackFcn(app, @ClearTableButton_WOrNCPushed, true);
+            app.ClearTableButton_WOrNC.BackgroundColor = [1 0.9059 0.6784];
+            app.ClearTableButton_WOrNC.Position = [37 8 612 23];
+            app.ClearTableButton_WOrNC.Text = 'Clear table';
+
+            % Create WorNCLabel
+            app.WorNCLabel = uilabel(app.Lab3FiltersTab);
+            app.WorNCLabel.HorizontalAlignment = 'center';
+            app.WorNCLabel.Position = [8 73 25 44];
+            app.WorNCLabel.Text = {'W'; 'or'; 'NC'};
 
             % Create SmoothingWindowMin
             app.SmoothingWindowMin = uieditfield(app.ModelSignalGeneratorUIFigure, 'numeric');
@@ -1263,14 +1412,14 @@ classdef application < matlab.apps.AppBase
             app.SmoothingWindowMin.RoundFractionalValues = 'on';
             app.SmoothingWindowMin.ValueDisplayFormat = '%.0f';
             app.SmoothingWindowMin.HorizontalAlignment = 'center';
-            app.SmoothingWindowMin.Position = [23 76 37 22];
-            app.SmoothingWindowMin.Value = 5;
+            app.SmoothingWindowMin.Position = [20 119 43 40];
+            app.SmoothingWindowMin.Value = 1;
 
             % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2 = uilabel(app.ModelSignalGeneratorUIFigure);
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.HorizontalAlignment = 'center';
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.WordWrap = 'on';
-            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.Position = [61 76 69 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.Position = [60 139 71 22];
             app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_2.Text = '<= W <=';
 
             % Create SmoothingWindowMax
@@ -1279,23 +1428,40 @@ classdef application < matlab.apps.AppBase
             app.SmoothingWindowMax.RoundFractionalValues = 'on';
             app.SmoothingWindowMax.ValueDisplayFormat = '%.0f';
             app.SmoothingWindowMax.HorizontalAlignment = 'center';
-            app.SmoothingWindowMax.Position = [131 76 40 22];
-            app.SmoothingWindowMax.Value = 30;
+            app.SmoothingWindowMax.Position = [129 119 42 40];
+            app.SmoothingWindowMax.Value = 100;
 
             % Create Lab2Label
             app.Lab2Label = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.Lab2Label.Position = [74 205 43 22];
+            app.Lab2Label.HorizontalAlignment = 'center';
+            app.Lab2Label.Position = [73 292 43 22];
             app.Lab2Label.Text = '(Lab 2)';
 
             % Create Lab3Label
             app.Lab3Label = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.Lab3Label.Position = [75 116 43 22];
+            app.Lab3Label.HorizontalAlignment = 'center';
+            app.Lab3Label.Position = [73 190 43 22];
             app.Lab3Label.Text = '(Lab 3)';
 
             % Create Lab1Label
             app.Lab1Label = uilabel(app.ModelSignalGeneratorUIFigure);
-            app.Lab1Label.Position = [75 279 43 22];
+            app.Lab1Label.HorizontalAlignment = 'center';
+            app.Lab1Label.Position = [74 374 43 22];
             app.Lab1Label.Text = '(Lab 1)';
+
+            % Create TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3 = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3.HorizontalAlignment = 'center';
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3.WordWrap = 'on';
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3.Position = [60 119 71 22];
+            app.TheNumberOfFourierSeriesTermsEditFieldLabelKMin_3.Text = '<= NC <=';
+
+            % Create SmoothingwindowwidthBandwidthLabel
+            app.SmoothingwindowwidthBandwidthLabel = uilabel(app.ModelSignalGeneratorUIFigure);
+            app.SmoothingwindowwidthBandwidthLabel.HorizontalAlignment = 'center';
+            app.SmoothingwindowwidthBandwidthLabel.WordWrap = 'on';
+            app.SmoothingwindowwidthBandwidthLabel.Position = [24 162 142 28];
+            app.SmoothingwindowwidthBandwidthLabel.Text = 'Smoothing window width / Bandwidth:';
 
             % Show the figure after all components are created
             app.ModelSignalGeneratorUIFigure.Visible = 'on';
